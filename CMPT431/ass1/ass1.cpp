@@ -8,7 +8,8 @@
 #include <map>
 #include <pthread.h>
 #include <unistd.h>
-//#include <semaphore.h>
+#include <thread>
+#include <memory>
 
 class Person;
 class Shop;
@@ -22,7 +23,7 @@ enum Position
 class Person
 {
 public:
-	Person(const std::string &name, Position pos, const std::vector<Shop *> &shops);
+	Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops);
 	void run();
 	void join();
 	Position getPosition() const { return _pos; }
@@ -36,10 +37,10 @@ private:
 
 	std::string _name;
 	Position _pos;
-	std::vector<Shop *> _shops;
+	std::vector<std::shared_ptr<Shop>> _shops;
 	pthread_t _thread;
 	uint32_t _timeLeftInShop;
-	Shop *_currentShop;
+	std::shared_ptr<Shop> _currentShop;
 };
 
 class Shop
@@ -82,15 +83,14 @@ public:
 	const std::string &getName() const { return _name; }
 private:
 	std::string _name;
-	//sem_t _deathSem;
-	//sem_t _aurorSem;
 	int _numDeath;
 	int _numAuror;
 	pthread_mutex_t _mutex;
 };
 
-Person::Person(const std::string &name, Position pos, const std::vector<Shop *> &shops) : 
-	_name(name), _pos(pos), _shops(shops), _currentShop(nullptr) {
+Person::Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops) :
+	_name(name), _pos(pos), _shops(shops), _currentShop(nullptr),
+	_timeLeftInShop(0) {
 }
 
 void Person::run() {
@@ -133,8 +133,8 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	std::vector<Person *> people;
-	std::map<std::string, Shop *> shops;
+	std::vector<std::unique_ptr<Person>> people;
+	std::map<std::string, std::shared_ptr<Shop>> shops;
 
 	std::ifstream file;
 	file.open(argv[1], std::ios::in);
@@ -145,11 +145,11 @@ int main(int argc, char *argv[]) {
 		std::string name, position;
 		l >> name >> position;
 		std::vector<std::string> s = std::vector<std::string>(std::istream_iterator<std::string>(l), std::istream_iterator<std::string>());
-		std::vector<Shop *> s2;
+		std::vector<std::shared_ptr<Shop>> s2;
 
 		for (std::string shop : s) {
 			if (shops.find(shop) == shops.end()) {
-				shops[shop] = new Shop(shop);
+				shops[shop] = std::make_shared<Shop>(shop);
 			}
 			s2.push_back(shops[shop]);
 		}
@@ -166,12 +166,12 @@ int main(int argc, char *argv[]) {
 		std::cout << name << " " << position << " ";
 		std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(std::cout, " "));
 		std::cout << std::endl;
-		Person *p = new Person(name, pos, s2);
+		std::unique_ptr<Person> p = std::make_unique<Person>(name, pos, s2);
 		p->run();
-		people.push_back(p);
+		people.push_back(std::move(p));
 	}
 
-	for (Person *p : people) {
+	for (std::unique_ptr<Person> &p : people) {
 		p->join();
 	}
 }
