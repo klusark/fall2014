@@ -6,13 +6,15 @@
 #include <iterator>
 #include <algorithm>
 #include <map>
-#include <pthread.h>
 #include <unistd.h>
 #include <thread>
 #include <memory>
+#include <mutex>
 
 class Person;
 class Shop;
+
+std::mutex cout_mutex;
 
 enum Position
 {
@@ -29,7 +31,7 @@ public:
 	Position getPosition() const { return _pos; }
 
 private:
-	static void *threadInit(void *in);
+	static void threadInit();
 	void threadRun();
 	bool areTasksDone() {
 		return _shops.size() == 0 && !_currentShop;
@@ -38,7 +40,7 @@ private:
 	std::string _name;
 	Position _pos;
 	std::vector<std::shared_ptr<Shop>> _shops;
-	pthread_t _thread;
+	std::thread _thread;
 	uint32_t _timeLeftInShop;
 	std::shared_ptr<Shop> _currentShop;
 };
@@ -47,13 +49,10 @@ class Shop
 {
 public:
 	Shop(const std::string &name) : _name(name), _numDeath(0), _numAuror(0) {
-		//sem_init(&_deathSem, 0, 0);
-		//sem_init(&_aurorSem, 0, 0);
-		pthread_mutex_init(&_mutex, nullptr);
 	}
 
-	bool enterShop(Person *p) {
-		pthread_mutex_lock(&_mutex);
+	bool enterShop(const Person *p) {
+		std::lock_guard<std::mutex> lock(_mutex);
 		bool val = false;
 		if (p->getPosition() == Auror) {
 			if (_numDeath == 0) {
@@ -66,18 +65,16 @@ public:
 				val = true;
 			}
 		}
-		pthread_mutex_unlock(&_mutex);
 		return val;
 	}
 
-	void leaveShop(Person *p) {
-		pthread_mutex_lock(&_mutex);
+	void leaveShop(const Person *p) {
+		std::lock_guard<std::mutex> lock(_mutex);
 		if (p->getPosition() == Auror) {
 			--_numAuror;
 		} else {
 			--_numDeath;
 		}
-		pthread_mutex_unlock(&_mutex);
 	}
 
 	const std::string &getName() const { return _name; }
@@ -85,27 +82,19 @@ private:
 	std::string _name;
 	int _numDeath;
 	int _numAuror;
-	pthread_mutex_t _mutex;
+	std::mutex _mutex;
 };
 
 Person::Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops) :
 	_name(name), _pos(pos), _shops(shops), _currentShop(nullptr),
-	_timeLeftInShop(0) {
+	_timeLeftInShop(0), _thread(&Person::threadRun, this) {
 }
 
-void Person::run() {
-	pthread_create(&_thread, nullptr, threadInit, (void *)this);
-}
 
 void Person::join() {
-	pthread_join(_thread, nullptr);
+	_thread.join();
 }
 
-void *Person::threadInit(void *in) {
-	static_cast<Person *>(in)->threadRun();
-
-	return nullptr;
-}
 
 void Person::threadRun() {
 	while (!areTasksDone()) {
@@ -113,17 +102,23 @@ void Person::threadRun() {
 			_timeLeftInShop--;
 		} else if (_timeLeftInShop == 0 && _currentShop){
 			_currentShop->leaveShop(this);
-			std::cout << _name << " leave shop " << _currentShop->getName() << std::endl;
+			{
+				std::lock_guard<std::mutex> lock(cout_mutex);
+				std::cout << _name << " leave shop " << _currentShop->getName() << std::endl;
+			}
 			_currentShop = nullptr;
 		}
 
 		if (!_currentShop && _shops.size() != 0 && _shops[0]->enterShop(this)) {
 			_currentShop = _shops[0];
-			std::cout << _name << " enter shop " << _currentShop->getName() <<  std::endl;
+			{
+				std::lock_guard<std::mutex> lock(cout_mutex);
+				std::cout << _name << " enter shop " << _currentShop->getName() <<  std::endl;
+			}
 			_shops.erase(_shops.begin());
 			_timeLeftInShop = 10;
 		}
-		usleep(100000);
+		usleep(1000);
 	}
 }
 
@@ -144,7 +139,11 @@ int main(int argc, char *argv[]) {
 		std::stringstream l(line);
 		std::string name, position;
 		l >> name >> position;
-		std::vector<std::string> s = std::vector<std::string>(std::istream_iterator<std::string>(l), std::istream_iterator<std::string>());
+
+		std::vector<std::string> s = std::vector<std::string>(
+				std::istream_iterator<std::string>(l),
+				std::istream_iterator<std::string>());
+
 		std::vector<std::shared_ptr<Shop>> s2;
 
 		for (std::string shop : s) {
@@ -163,12 +162,18 @@ int main(int argc, char *argv[]) {
 			std::cout << "Invalid position " << position << std::endl;
 			return -1;
 		}
-		std::cout << name << " " << position << " ";
-		std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(std::cout, " "));
-		std::cout << std::endl;
+
+		{
+			std::lock_guard<std::mutex> lock(cout_mutex);
+			std::cout << name << " " << position << " ";
+			std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(std::cout, " "));
+			std::cout << std::endl;
+		}
 		std::unique_ptr<Person> p = std::make_unique<Person>(name, pos, s2);
-		p->run();
 		people.push_back(std::move(p));
+
+		//TODO: The thread starts on construction, which could be bad if there
+		//      are lots of wizards
 	}
 
 	for (std::unique_ptr<Person> &p : people) {
