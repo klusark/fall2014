@@ -12,6 +12,7 @@
 #include <chrono>
 #include <thread>
 #include <random>
+#include <condition_variable>
 
 #ifndef _MSC_VER
 #include "c++14compat.h"
@@ -22,6 +23,9 @@ class Shop;
 
 std::mutex cout_mutex;
 std::mutex rand_mutex;
+
+std::condition_variable start_condition;
+int threads_ready;
 
 std::default_random_engine generator((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
 std::uniform_int_distribution<int> distribution(1, 4);
@@ -140,6 +144,11 @@ void Person::join() {
 
 
 void Person::threadRun() {
+	{
+		std::unique_lock<std::mutex> lock(cout_mutex);
+		++threads_ready;
+		start_condition.wait(lock);
+	}
 	while (!areTasksDone()) {
 		if (_timeLeftInShop != 0) {
 			_timeLeftInShop--;
@@ -244,6 +253,14 @@ int main(int argc, char *argv[]) {
 	for (std::unique_ptr<Person> &p : people) {
 		p->run();
 	}
+
+	while (1) {
+		std::lock_guard<std::mutex> lock(cout_mutex);
+		if (threads_ready == people.size()) {
+			break;
+		}
+	}
+	start_condition.notify_all();
 
 	for (std::unique_ptr<Person> &p : people) {
 		p->join();
