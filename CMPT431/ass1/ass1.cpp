@@ -23,7 +23,7 @@ class Shop;
 std::mutex cout_mutex;
 
 std::default_random_engine generator((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
-std::uniform_int_distribution<int> distribution(1,6);
+std::uniform_int_distribution<int> distribution(1, 4);
 auto dice = std::bind ( distribution, generator );
 
 enum Position
@@ -135,24 +135,37 @@ void Person::join() {
 
 void Person::threadRun() {
 	while (!areTasksDone()) {
-		++_second;
 		if (_timeLeftInShop != 0) {
 			_timeLeftInShop--;
 		} else if (_timeLeftInShop == 0 && _currentShop){
-			_currentShop->leaveShop(this);
 			bool canEnter = false;
-			if (!_currentShop && _shops.size() != 0 && _shops[0]->canEnterShop(this)) {
+			bool doneShopping = false;
+			if (_shops.size() != 0 && _shops[0]->enterShop(this)) {
 				canEnter = true;
+			} else if (_shops.size() == 0) {
+				doneShopping = true;
 			}
 			{
 				std::lock_guard<std::mutex> lock(cout_mutex);
 				if (canEnter) {
+					std::cout << *this << " makes a reservation at the " << _shops[0]->getName() << " shop." <<  std::endl;
 					std::cout << *this << " leaves the " << _currentShop->getName() << " shop to apparate to the next destination." << std::endl;
+				} else if (doneShopping) {
+					std::cout << *this << " is done with shopping, so he leaves the " << _currentShop->getName() << " shop." << std::endl;
 				} else {
-					std::cout << *this << " is bored talking to the salesperson, so she leaves the " << _currentShop->getName() << " without a reservation for the next shop to go for a walk." << std::endl;
+					std::cout << *this << " is bored talking to the salesperson, so he leaves the " << _currentShop->getName() << " without a reservation for the next shop to go for a walk." << std::endl;
 				}
 			}
+			_currentShop->leaveShop(this);
 			_currentShop = nullptr;
+			if (canEnter) {
+				_currentShop = _shops[0];
+				_shops.erase(_shops.begin());
+				{
+					std::lock_guard<std::mutex> lock(cout_mutex);
+					std::cout << *this << " enters the " << _currentShop->getName() << " shop." <<  std::endl;
+				}
+			}
 		}
 
 		if (!_currentShop && _shops.size() != 0 && _shops[0]->enterShop(this)) {
@@ -166,6 +179,7 @@ void Person::threadRun() {
 			_timeLeftInShop = dice();
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		++_second;
 	}
 }
 
