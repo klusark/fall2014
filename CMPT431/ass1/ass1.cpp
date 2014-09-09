@@ -13,6 +13,7 @@
 #include <thread>
 #include <random>
 #include <condition_variable>
+#include <set>
 
 #ifndef _MSC_VER
 #include "c++14compat.h"
@@ -49,6 +50,9 @@ public:
 	void run();
 	void join();
 	Position getPosition() const { return _pos; }
+	const std::string &getName() const { return _name; }
+
+	const std::vector<std::shared_ptr<Shop>> &getShops() { return _shops; }
 
 	friend std::ostream& operator<< (std::ostream &out, Person &p);
 
@@ -74,14 +78,6 @@ public:
 	Shop(const std::string &name) : _name(name), _numDeath(0), _numAuror(0) {
 	}
 
-	bool canEnterShop(const Person *p) {
-		std::lock_guard<std::mutex> lock(_mutex);
-		if (p->getPosition() == Auror) {
-			return _numDeath == 0;
-		} else {
-			return _numAuror == 0;
-		}
-	}
 	bool enterShop(const Person *p) {
 		std::lock_guard<std::mutex> lock(_mutex);
 		if (p->getPosition() == Auror) {
@@ -206,6 +202,7 @@ int main(int argc, char *argv[]) {
 
 	std::vector<std::unique_ptr<Person>> people;
 	std::map<std::string, std::shared_ptr<Shop>> shops;
+	std::set<std::string> usedNames;
 
 	std::ifstream file;
 	file.open(argv[1], std::ios::in);
@@ -216,13 +213,27 @@ int main(int argc, char *argv[]) {
 		std::string name, position;
 		l >> name >> position;
 
+		if (usedNames.find(name) == usedNames.end()) {
+			usedNames.insert(name);
+		} else {
+			std::cerr << "Name already used: " << name << std::endl;
+			return -1;
+		}
+
 		std::vector<std::string> s = std::vector<std::string>(
 				std::istream_iterator<std::string>(l),
 				std::istream_iterator<std::string>());
 
 		std::vector<std::shared_ptr<Shop>> s2;
+		std::set<std::string> usedShopNames;
 
 		for (std::string shop : s) {
+			if (usedShopNames.find(shop) == usedShopNames.end()) {
+				usedShopNames.insert(shop);
+			} else {
+				std::cerr << "Shop name already used: " << shop << std::endl;
+				return -1;
+			}
 			if (shops.find(shop) == shops.end()) {
 				shops[shop] = std::make_shared<Shop>(shop);
 			}
@@ -235,22 +246,28 @@ int main(int argc, char *argv[]) {
 		} else if (position == "Auror") {
 			pos = Auror;
 		} else {
-			std::cout << "Invalid position " << position << std::endl;
+			std::cerr << "Invalid position " << position << std::endl;
 			return -1;
 		}
 
-		{
-			std::lock_guard<std::mutex> lock(cout_mutex);
-			std::cout << name << " " << position << " ";
-			std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(std::cout, " "));
-			std::cout << std::endl;
-		}
 		std::unique_ptr<Person> p = std::make_unique<Person>(name, pos, s2);
 		people.push_back(std::move(p));
 
 	}
+	{
+		std::lock_guard<std::mutex> lock(cout_mutex);
+		for (auto &p : people) {
+			std::cout << p->getName() << " " << p->getPosition() << " ";
+			for (auto &s : p->getShops()) {
+				std::cout << s->getName() << " ";
+			}
 
-	for (std::unique_ptr<Person> &p : people) {
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+	}
+
+	for (auto &p : people) {
 		p->run();
 	}
 
@@ -262,7 +279,7 @@ int main(int argc, char *argv[]) {
 	}
 	start_condition.notify_all();
 
-	for (std::unique_ptr<Person> &p : people) {
+	for (auto &p : people) {
 		p->join();
 	}
 }
