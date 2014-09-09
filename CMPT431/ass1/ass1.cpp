@@ -21,10 +21,16 @@ class Person;
 class Shop;
 
 std::mutex cout_mutex;
+std::mutex rand_mutex;
 
 std::default_random_engine generator((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
 std::uniform_int_distribution<int> distribution(1, 4);
-auto dice = std::bind ( distribution, generator );
+int dice() {
+	// Use a mutex for random values as the standard does not guarantee it to be thread safe
+	std::lock_guard<std::mutex> lock(rand_mutex);
+	return distribution(generator);
+}
+
 
 enum Position
 {
