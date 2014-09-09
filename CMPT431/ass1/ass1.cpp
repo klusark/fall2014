@@ -11,6 +11,8 @@
 #include <memory>
 #include <mutex>
 
+#include "c++14compat.h"
+
 class Person;
 class Shop;
 
