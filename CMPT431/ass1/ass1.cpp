@@ -6,17 +6,25 @@
 #include <iterator>
 #include <algorithm>
 #include <map>
-#include <unistd.h>
 #include <thread>
 #include <memory>
 #include <mutex>
+#include <chrono>
+#include <thread>
+#include <random>
 
+#ifndef _MSC_VER
 #include "c++14compat.h"
+#endif
 
 class Person;
 class Shop;
 
 std::mutex cout_mutex;
+
+std::default_random_engine generator((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
+std::uniform_int_distribution<int> distribution(1,6);
+auto dice = std::bind ( distribution, generator );
 
 enum Position
 {
@@ -32,6 +40,8 @@ public:
 	void join();
 	Position getPosition() const { return _pos; }
 
+	friend std::ostream& operator<< (std::ostream &out, Person &p);
+
 private:
 	static void threadInit();
 	void threadRun();
@@ -45,6 +55,7 @@ private:
 	std::thread _thread;
 	uint32_t _timeLeftInShop;
 	std::shared_ptr<Shop> _currentShop;
+	uint32_t _second;
 };
 
 class Shop
@@ -53,21 +64,28 @@ public:
 	Shop(const std::string &name) : _name(name), _numDeath(0), _numAuror(0) {
 	}
 
+	bool canEnterShop(const Person *p) {
+		std::lock_guard<std::mutex> lock(_mutex);
+		if (p->getPosition() == Auror) {
+			return _numDeath == 0;
+		} else {
+			return _numAuror == 0;
+		}
+	}
 	bool enterShop(const Person *p) {
 		std::lock_guard<std::mutex> lock(_mutex);
-		bool val = false;
 		if (p->getPosition() == Auror) {
 			if (_numDeath == 0) {
 				_numAuror++;
-				val = true;
+				return true;
 			}
 		} else {
 			if (_numAuror == 0) {
 				_numDeath++;
-				val = true;
+				return true;
 			}
 		}
-		return val;
+		return false;
 	}
 
 	void leaveShop(const Person *p) {
@@ -87,11 +105,28 @@ private:
 	std::mutex _mutex;
 };
 
-Person::Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops) :
-	_name(name), _pos(pos), _shops(shops), _currentShop(nullptr),
-	_timeLeftInShop(0), _thread(&Person::threadRun, this) {
+std::ostream& operator<< (std::ostream &out, Position p) {
+	if (p == DeathEater) {
+		out << "DeathEater";
+	} else {
+		out << "Auror";
+	}
+	return out;
 }
 
+std::ostream& operator<< (std::ostream &out, Person &p) {
+	out << "tid " << p._thread.get_id() << ": second " << p._second <<": " << p._name << " (" << p._pos << ")";
+	return out;
+}
+
+Person::Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops) :
+	_name(name), _pos(pos), _shops(shops), _currentShop(nullptr),
+	_timeLeftInShop(0), _second(0) {
+}
+
+void Person::run() {
+	_thread = std::thread(&Person::threadRun, this);
+}
 
 void Person::join() {
 	_thread.join();
@@ -100,13 +135,22 @@ void Person::join() {
 
 void Person::threadRun() {
 	while (!areTasksDone()) {
+		++_second;
 		if (_timeLeftInShop != 0) {
 			_timeLeftInShop--;
 		} else if (_timeLeftInShop == 0 && _currentShop){
 			_currentShop->leaveShop(this);
+			bool canEnter = false;
+			if (!_currentShop && _shops.size() != 0 && _shops[0]->canEnterShop(this)) {
+				canEnter = true;
+			}
 			{
 				std::lock_guard<std::mutex> lock(cout_mutex);
-				std::cout << _name << " leave shop " << _currentShop->getName() << std::endl;
+				if (canEnter) {
+					std::cout << *this << " leaves the " << _currentShop->getName() << " shop to apparate to the next destination." << std::endl;
+				} else {
+					std::cout << *this << " is bored talking to the salesperson, so she leaves the " << _currentShop->getName() << " without a reservation for the next shop to go for a walk." << std::endl;
+				}
 			}
 			_currentShop = nullptr;
 		}
@@ -115,12 +159,13 @@ void Person::threadRun() {
 			_currentShop = _shops[0];
 			{
 				std::lock_guard<std::mutex> lock(cout_mutex);
-				std::cout << _name << " enter shop " << _currentShop->getName() <<  std::endl;
+				std::cout << *this << " makes a reservation at the " << _currentShop->getName() << " shop." <<  std::endl;
+				std::cout << *this << " enters the " << _currentShop->getName() << " shop." <<  std::endl;
 			}
 			_shops.erase(_shops.begin());
-			_timeLeftInShop = 10;
+			_timeLeftInShop = dice();
 		}
-		usleep(1000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 }
 
@@ -174,8 +219,10 @@ int main(int argc, char *argv[]) {
 		std::unique_ptr<Person> p = std::make_unique<Person>(name, pos, s2);
 		people.push_back(std::move(p));
 
-		//TODO: The thread starts on construction, which could be bad if there
-		//      are lots of wizards
+	}
+
+	for (std::unique_ptr<Person> &p : people) {
+		p->run();
 	}
 
 	for (std::unique_ptr<Person> &p : people) {
