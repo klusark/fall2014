@@ -75,33 +75,10 @@ private:
 class Shop
 {
 public:
-	Shop(const std::string &name) : _name(name), _numDeath(0), _numAuror(0) {
-	}
+	Shop(const std::string &name);
 
-	bool enterShop(const Person *p) {
-		std::lock_guard<std::mutex> lock(_mutex);
-		if (p->getPosition() == Auror) {
-			if (_numDeath == 0) {
-				_numAuror++;
-				return true;
-			}
-		} else {
-			if (_numAuror == 0) {
-				_numDeath++;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	void leaveShop(const Person *p) {
-		std::lock_guard<std::mutex> lock(_mutex);
-		if (p->getPosition() == Auror) {
-			--_numAuror;
-		} else {
-			--_numDeath;
-		}
-	}
+	bool enterShop(const Person *p);
+	void leaveShop(const Person *p);
 
 	const std::string &getName() const { return _name; }
 private:
@@ -123,6 +100,34 @@ std::ostream& operator<< (std::ostream &out, Position p) {
 std::ostream& operator<< (std::ostream &out, Person &p) {
 	out << "tid " << p._thread.get_id() << ": second " << p._second <<": " << p._name << " (" << p._pos << ")";
 	return out;
+}
+
+Shop::Shop(const std::string &name) : _name(name), _numDeath(0), _numAuror(0) {
+}
+
+bool Shop::enterShop(const Person *p) {
+	std::lock_guard<std::mutex> lock(_mutex);
+	if (p->getPosition() == Auror) {
+		if (_numDeath == 0) {
+			_numAuror++;
+			return true;
+		}
+	} else {
+		if (_numAuror == 0) {
+			_numDeath++;
+			return true;
+		}
+	}
+	return false;
+}
+
+void Shop::leaveShop(const Person *p) {
+	std::lock_guard<std::mutex> lock(_mutex);
+	if (p->getPosition() == Auror) {
+		--_numAuror;
+	} else {
+		--_numDeath;
+	}
 }
 
 Person::Person(const std::string &name, Position pos, const std::vector<std::shared_ptr<Shop>> &shops) :
