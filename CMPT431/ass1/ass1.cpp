@@ -29,7 +29,7 @@ std::condition_variable start_condition;
 int threads_ready;
 
 std::default_random_engine generator((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
-std::uniform_int_distribution<int> distribution(1, 4);
+std::uniform_int_distribution<int> distribution(2, 5);
 int dice() {
 	// Use a mutex for random values as the standard does not guarantee it to be thread safe
 	std::lock_guard<std::mutex> lock(rand_mutex);
@@ -153,9 +153,11 @@ void Person::threadRun() {
 	while (!areTasksDone()) {
 		if (_timeLeftInShop != 0) {
 			_timeLeftInShop--;
-		} else if (_timeLeftInShop == 0 && _currentShop){
+		}
+		if (_currentShop) {
 			bool canEnter = false;
 			bool doneShopping = false;
+			bool justLeft = false;
 			if (_shops.size() != 0 && _shops[0]->enterShop(this)) {
 				canEnter = true;
 			} else if (_shops.size() == 0) {
@@ -166,20 +168,25 @@ void Person::threadRun() {
 				if (canEnter) {
 					std::cout << *this << " makes a reservation at the " << _shops[0]->getName() << " shop." <<  std::endl;
 					std::cout << *this << " leaves the " << _currentShop->getName() << " shop to apparate to the next destination." << std::endl;
+					justLeft = true;
 				} else if (doneShopping) {
 					std::cout << *this << " is done with shopping, so he leaves the " << _currentShop->getName() << " shop." << std::endl;
-				} else {
-					std::cout << *this << " is bored talking to the salesperson, so he leaves the " << _currentShop->getName() << " without a reservation for the next shop to go for a walk." << std::endl;
+					justLeft = true;
+				} else if (_timeLeftInShop == 0) {
+					std::cout << *this << " is bored talking to the salesperson, so he leaves the " << _currentShop->getName() << " shop without a reservation for the next shop to go for a walk." << std::endl;
+					justLeft = true;
 				}
 			}
-			_currentShop->leaveShop(this);
-			_currentShop = nullptr;
-			if (canEnter) {
-				_currentShop = _shops[0];
-				_shops.erase(_shops.begin());
-				{
-					std::lock_guard<std::mutex> lock(cout_mutex);
-					std::cout << *this << " enters the " << _currentShop->getName() << " shop." <<  std::endl;
+			if (justLeft) {
+				_currentShop->leaveShop(this);
+				_currentShop = nullptr;
+				if (canEnter) {
+					_currentShop = _shops[0];
+					_shops.erase(_shops.begin());
+					{
+						std::lock_guard<std::mutex> lock(cout_mutex);
+						std::cout << *this << " enters the " << _currentShop->getName() << " shop." <<  std::endl;
+					}
 				}
 			}
 		}
