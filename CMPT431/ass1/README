@@ -1,0 +1,9 @@
+c++14compat.h is taken from c++ document number N3656 "make_unique (Revision 1)"
+I am using it in order to provide make_unique to a compiler that does not suport
+it.
+
+To run:
+
+make
+
+./ass1 in.txt
