@@ -48,7 +48,7 @@ all: $(OBJECT) depend
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) $(LIBFLAG) $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
 
 depend:
-	$(CC) -M $(SOURCE) > depend
+	$(CC) -M -std=c++11 $(SOURCE) > depend
 
 $(OBJECT):
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) -c -o $@ $(@:.o=.cpp)

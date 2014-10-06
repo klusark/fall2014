@@ -30,17 +30,23 @@ int ysize = 720;
 // current tile
 vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
 vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+vec4 tilecolour[4];
+int colourRot = 0;
+int rot = 0;
+int tiletype = 0;
+
+bool gameDone = false;
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
 vec2 allRotationsLshape[][4] = {
-	{vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1)}, // Square
-	{vec2(0, 0), vec2(0, 1), vec2(0, 2), vec2(0, 3)}, // Line
-	{vec2(0, 0), vec2(1, 0), vec2(2, 0), vec2(1, 1)}, // Pyramid
-	{vec2(0, 0), vec2(1, 0), vec2(2, 0), vec2(0, 1)}, // L
-	{vec2(0, 0), vec2(1, 0), vec2(2, 0), vec2(2, 1)}, // L
-	{vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(1, 2)}, // Squiggle
-	{vec2(0, 1), vec2(1, 1), vec2(1, 0), vec2(2, 0)}, // Squiggle
+	{vec2( 0,  0), vec2( 1,  0), vec2( 1,  1), vec2( 0,  1)}, // Square
+	{vec2( 0,  1), vec2( 0,  0), vec2( 0, -1), vec2( 0, -2)}, // Line
+	{vec2( 0, -1), vec2( 0,  0), vec2( 0,  1), vec2( 1,  0)}, // Pyramid
+	{vec2( 1,  0), vec2( 0,  0), vec2(-1,  0), vec2(-1,  1)}, // L
+	{vec2(-1,  1), vec2( 0,  1), vec2( 0,  0), vec2( 0, -1)}, // L
+	{vec2(-1, -1), vec2(-1,  0), vec2( 0,  0), vec2( 0,  1)}, // Squiggle
+	{vec2( 0, -1), vec2( 0,  0), vec2(-1,  0), vec2(-1,  1)}, // Squiggle
 };
 
 std::default_random_engine generator;
@@ -54,9 +60,10 @@ vec4 colours[] = {
 	vec4(1.0, 0.5, 0.0, 1.0), // orange
 	vec4(1.0, 0.0, 0.0, 1.0), // red
 	vec4(0.0, 1.0, 0.0, 1.0), // green
-	vec4(0.0, 0.0, 1.0, 1.0), // blue
+	vec4(0.5, 0.0, 0.5, 1.0), // purple
+	vec4(1.0, 1.0, 0.0, 1.0), // purple
 };
-std::uniform_int_distribution<int> colour_distribution(0, 3);
+std::uniform_int_distribution<int> colour_distribution(0, 4);
 
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20];
@@ -84,7 +91,18 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 
 // When the current tile is moved or rotated (or created), update the VBO
 // containing its vertex position data
-void updatetile() {
+void updateTile() {
+	for (int i = 0; i < 4; i++) {
+		tile[i] = allRotationsLshape[tiletype][(i + colourRot) % 4];
+		if (rot == 1 || rot == 3) {
+			std::swap(tile[i].x, tile[i].y);
+		}
+		if (rot == 2 || rot == 3) {
+			tile[i].x = -tile[i].x;
+			tile[i].y = -tile[i].y;
+		}
+	}
+
 	// Bind the VBO containing current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
 
@@ -115,21 +133,40 @@ void updatetile() {
 
 // Called at the start of play and every time a tile is placed
 void newtile() {
-	tilepos = vec2(5 , 19); // Put the tile at the top of the board
-	int tiletype = rot_distribution(generator);
+	rot = 0;
+	colourRot = 0;
+	tilepos = vec2(5, 20); // Put the tile at the top of the board
+	tiletype = rot_distribution(generator);
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
 		// Get the 4 pieces of the new tile
 		tile[i] = allRotationsLshape[tiletype][i];
 	}
-	updatetile();
+	for (int i = 0; i < 4; ++i) {
+		vec2 newpos = tilepos;
+		newpos += tile[i];
+		while (newpos.y >= 20) {
+			tilepos.y -= 1;
+			newpos.y -= 1;
+		}
+	}
+	for (int i = 0; i < 4; ++i) {
+		vec2 newpos = tilepos;
+		newpos += tile[i];
+		if (board[(int)newpos.x][(int)newpos.y]) {
+			gameDone = true;
+		}
+	}
+	updateTile();
 
 	// Update the color VBO of current tile
 	vec4 newcolours[24];
-	int colour = colour_distribution(generator);
+	for (int i = 0; i < 4; ++i) {
+		tilecolour[i] = colours[colour_distribution(generator)];
+	}
 	for (int i = 0; i < 24; i++) {
 		// TODO: Randomize
-		newcolours[i] = colours[colour];
+		newcolours[i] = tilecolour[i/6];
 	}
 	// Bind the VBO containing current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
@@ -186,12 +223,13 @@ void initBoard()
 {
 	// *** Generate the geometric data
 	vec4 boardpoints[BOARD_SIZE];
-	for (int i = 0; i < BOARD_SIZE; i++)
-		boardcolours[i] = black; // Let the empty cells on the board be black
+	for (int i = 0; i < BOARD_SIZE; i++) {
+		// Let the empty cells on the board be black
+		boardcolours[i] = black;
+	}
 	// Each cell is a square (2 triangles with 6 vertices)
-	for (int i = 0; i < 20; i++){
-		for (int j = 0; j < 10; j++)
-		{
+	for (int i = 0; i < 20; i++) {
+		for (int j = 0; j < 10; j++) {
 			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), .5, 1);
 			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), .5, 1);
 			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), .5, 1);
@@ -248,6 +286,16 @@ void initCurrentTile() {
 	glEnableVertexAttribArray(vColor);
 }
 
+void startGame() {
+	// Initialize the grid, the board, and the current tile
+	initGrid();
+	initBoard();
+	initCurrentTile();
+
+	// Game initialization
+	newtile(); // create new next tile
+}
+
 void init() {
 	// Load shaders and use the shader program
 	GLuint program = InitShader("vshader.glsl", "fshader.glsl");
@@ -261,22 +309,18 @@ void init() {
 	// names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
 
-	// Initialize the grid, the board, and the current tile
-	initGrid();
-	initBoard();
-	initCurrentTile();
-
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize");
 	locysize = glGetUniformLocation(program, "ysize");
 
-	// Game initialization
-	newtile(); // create new next tile
-
 	// set to default
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
+
+
+	startGame();
 }
+
 
 //------------------------------------------------------------------------------
 
@@ -316,23 +360,69 @@ bool movetile(vec2 direction) {
 // Starts the game over - empties the board, creates new tiles, resets line
 // counters
 void restart() {
-
+	startGame();
 }
 //------------------------------------------------------------------------------
+
+bool tileLanded() {
+	for (int i = 0; i < 4; ++i) {
+		vec2 newpos = tilepos;
+		newpos += tile[i];
+		if (newpos.y < 0) {
+			return true;
+		}
+		if (board[(int)newpos.x][(int)newpos.y]) {
+			return true;
+		}
+
+	}
+	return false;
+}
+
+bool checkCollide() {
+	for (int i = 0; i < 4; ++i) {
+		vec2 newpos = tilepos;
+		newpos += tile[i];
+		if (newpos.x < 0 || newpos.x > 9) {
+			return true;
+		}
+	}
+	return tileLanded();
+}
+
+void addTileToBoard() {
+	for (int i = 0; i < 4; ++i) {
+		vec2 newpos = tilepos;
+		newpos += tile[i];
+		for (int j = 0; j < 6; ++j) {
+			int pos = (newpos.y * 10 + newpos.x) * 6 + j;
+			boardcolours[pos] = tilecolour[i];
+		}
+		board[(int)newpos.x][(int)newpos.y] = true;
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+}
 
 int timeElapsed = 0;
 int timeSinceMove = 0;
 void updateGame() {
+	if (gameDone) {
+		return;
+	}
 	int newtime = glutGet(GLUT_ELAPSED_TIME);
 	int frametime = newtime - timeElapsed;
 	timeSinceMove += frametime;
-	if (timeSinceMove > 200) {
+	if (timeSinceMove > 1000) {
 		tilepos.y -= 1;
-		updatetile();
-		timeSinceMove %= 200;
+		updateTile();
+		timeSinceMove %= 1000;
 	}
 
-	if (tilepos.y < 0) {
+	if (tileLanded()) {
+		tilepos.y += 1;
+		addTileToBoard();
 		tilepos.y = 2;
 		newtile();
 	}
@@ -342,7 +432,6 @@ void updateGame() {
 
 // Draws the game
 void display() {
-	updateGame();
 
 
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -381,8 +470,31 @@ void reshape(GLsizei w, GLsizei h) {
 
 //------------------------------------------------------------------------------
 
+const static int LEFT = 100;
+const static int UP = 101;
+const static int RIGHT = 102;
+const static int DOWN = 103;
+
 // Handle arrow key keypresses
 void special(int key, int x, int y) {
+	vec2 startpos = tilepos;
+	if (key == LEFT) {
+		tilepos.x -= 1;
+	} else if (key == RIGHT) {
+		tilepos.x += 1;
+	} else if (key == UP) {
+		rot = (rot + 1) % 4;
+		updateTile();
+	} else if (key == DOWN) {
+		while (!tileLanded()) {
+			tilepos.y -= 1;
+		}
+		tilepos.y += 1;
+	}
+
+	if (checkCollide()) {
+		tilepos = startpos;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -390,6 +502,10 @@ void special(int key, int x, int y) {
 // Handles standard keypresses
 void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
+		case ' ':
+			colourRot = (colourRot + 1) % 4;
+			updateTile();
+			break;
 		case 033: // Both escape key and 'q' cause the game to exit
 		case 'q':
 			exit (EXIT_SUCCESS);
@@ -405,6 +521,7 @@ void keyboard(unsigned char key, int x, int y) {
 
 void idle(void) {
 	glutPostRedisplay();
+	updateGame();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
