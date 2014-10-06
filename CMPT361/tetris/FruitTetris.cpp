@@ -61,7 +61,7 @@ vec4 colours[] = {
 	vec4(1.0, 0.0, 0.0, 1.0), // red
 	vec4(0.0, 1.0, 0.0, 1.0), // green
 	vec4(0.5, 0.0, 0.5, 1.0), // purple
-	vec4(1.0, 1.0, 0.0, 1.0), // purple
+	vec4(1.0, 1.0, 0.0, 1.0), // yellow
 };
 std::uniform_int_distribution<int> colour_distribution(0, 4);
 
@@ -87,11 +87,12 @@ GLuint locysize;
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
-//------------------------------------------------------------------------------
+const static int movetime = 200;
 
-// When the current tile is moved or rotated (or created), update the VBO
-// containing its vertex position data
-void updateTile() {
+bool checkCollide();
+
+//------------------------------------------------------------------------------
+bool updateRot() {
 	for (int i = 0; i < 4; i++) {
 		tile[i] = allRotationsLshape[tiletype][(i + colourRot) % 4];
 		if (rot == 1 || rot == 3) {
@@ -102,7 +103,12 @@ void updateTile() {
 			tile[i].y = -tile[i].y;
 		}
 	}
+	return !checkCollide();
+}
 
+// When the current tile is moved or rotated (or created), update the VBO
+// containing its vertex position data
+void updateTile() {
 	// Bind the VBO containing current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
 
@@ -127,6 +133,12 @@ void updateTile() {
 	}
 
 	glBindVertexArray(0);
+}
+
+void updateBoard() {
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -246,9 +258,11 @@ void initBoard()
 	}
 
 	// Initially no cell is occupied
-	for (int i = 0; i < 10; i++)
-		for (int j = 0; j < 20; j++)
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 20; j++) {
 			board[i][j] = false;
+		}
+	}
 
 
 	// *** set up buffer objects
@@ -262,9 +276,7 @@ void initBoard()
 	glEnableVertexAttribArray(vPosition);
 
 	// Grid cell vertex colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	updateBoard();
 	glEnableVertexAttribArray(vColor);
 }
 
@@ -321,41 +333,54 @@ void init() {
 	startGame();
 }
 
-
-//------------------------------------------------------------------------------
-
-// Rotates the current tile, if there is room
-void rotate()
-{
-
+void setSpace(int x, int y, bool occupied, const vec4 &colour) {
+	board[x][y] = occupied;
+	for (int j = 0; j < 6; ++j) {
+		int pos = (y * 10 + x) * 6 + j;
+		boardcolours[pos] = colour;
+	}
 }
 
-//------------------------------------------------------------------------------
-
-// Checks if the specified row (0 is the bottom 19 the top) is full
-// If every cell in the row is occupied, it will clear that cell and everything
-// above it will shift down one row
-void checkfullrow(int row) {
-
+bool getOccupied(int x, int y) {
+	return board[x][y];
 }
 
-//------------------------------------------------------------------------------
-
-// Places the current tile - update the board vertex colour VBO and the array
-// maintaining occupied cells
-void settile() {
-
+vec4 getColour(int x, int y) {
+	return boardcolours[(y * 10 + x) * 6];
 }
 
-//------------------------------------------------------------------------------
-
-// Given (x,y), tries to move the tile x squares to the right and y squares down
-// Returns true if the tile was successfully moved, or false if there was some
-// issue
-bool movetile(vec2 direction) {
-	return false;
+void checkBoard() {
+	bool needUpdate = false;
+	// check the rows
+	for (int y = 0; y < 20; ++y) {
+		bool allOccupied = true;
+		for (int x = 0; x < 10; ++x) {
+			if (!board[x][y]) {
+				allOccupied = false;
+				break;
+			}
+		}
+		if (allOccupied) {
+			needUpdate = true;
+			for (int x = 0; x < 10; ++x) {
+				setSpace(x, y, false, black);
+			}
+			for (int y2 = y; y2 < 19; ++y2) {
+				for (int x = 0; x < 10; ++x) {
+					setSpace(x, y2, getOccupied(x, y2+1), getColour(x, y2+1));
+				}
+			}
+			//We need to check the current line again to make sure that it
+			//wasn't filled twice
+			--y;
+		}
+	}
+	if (needUpdate) {
+		updateBoard();
+	}
 }
-//------------------------------------------------------------------------------
+
+
 
 // Starts the game over - empties the board, creates new tiles, resets line
 // counters
@@ -394,15 +419,9 @@ void addTileToBoard() {
 	for (int i = 0; i < 4; ++i) {
 		vec2 newpos = tilepos;
 		newpos += tile[i];
-		for (int j = 0; j < 6; ++j) {
-			int pos = (newpos.y * 10 + newpos.x) * 6 + j;
-			boardcolours[pos] = tilecolour[i];
-		}
-		board[(int)newpos.x][(int)newpos.y] = true;
+		setSpace(newpos.x, newpos.y, true, tilecolour[i]);
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	updateBoard();
 }
 
 int timeElapsed = 0;
@@ -414,15 +433,16 @@ void updateGame() {
 	int newtime = glutGet(GLUT_ELAPSED_TIME);
 	int frametime = newtime - timeElapsed;
 	timeSinceMove += frametime;
-	if (timeSinceMove > 1000) {
+	if (timeSinceMove > movetime) {
 		tilepos.y -= 1;
 		updateTile();
-		timeSinceMove %= 1000;
+		timeSinceMove %= movetime;
 	}
 
 	if (tileLanded()) {
 		tilepos.y += 1;
 		addTileToBoard();
+		checkBoard();
 		tilepos.y = 2;
 		newtile();
 	}
@@ -483,8 +503,12 @@ void special(int key, int x, int y) {
 	} else if (key == RIGHT) {
 		tilepos.x += 1;
 	} else if (key == UP) {
+		int lastrot = rot;
 		rot = (rot + 1) % 4;
-		updateTile();
+		if (!updateRot()) {
+			rot = lastrot;
+			updateRot();
+		}
 	} else if (key == DOWN) {
 		while (!tileLanded()) {
 			tilepos.y -= 1;
@@ -494,6 +518,8 @@ void special(int key, int x, int y) {
 
 	if (checkCollide()) {
 		tilepos = startpos;
+	} else {
+		updateTile();
 	}
 }
 
@@ -504,6 +530,7 @@ void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
 		case ' ':
 			colourRot = (colourRot + 1) % 4;
+			updateRot();
 			updateTile();
 			break;
 		case 033: // Both escape key and 'q' cause the game to exit
