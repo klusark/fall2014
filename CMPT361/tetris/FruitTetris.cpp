@@ -129,7 +129,8 @@ void updateTile() {
 		vec4 newpoints[6] = {p1, p2, p3, p2, p3, p4};
 
 		// Put new data in the VBO
-		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4), newpoints);
+		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4),
+						newpoints);
 	}
 
 	glBindVertexArray(0);
@@ -137,7 +138,8 @@ void updateTile() {
 
 void updateBoard() {
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours,
+					GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
@@ -177,7 +179,6 @@ void newtile() {
 		tilecolour[i] = colours[colour_distribution(generator)];
 	}
 	for (int i = 0; i < 24; i++) {
-		// TODO: Randomize
 		newcolours[i] = tilecolour[i/6];
 	}
 	// Bind the VBO containing current tile vertex colours
@@ -194,7 +195,8 @@ void newtile() {
 void initGrid()
 {
 	// ***Generate geometry data
-	vec4 gridpoints[64]; // Array containing the 64 points of the 32 total lines to be later put in the VBO
+	// Array containing the 64 points of the 32 total lines to be later put in the VBO
+	vec4 gridpoints[64];
 	vec4 gridcolours[64]; // One colour per vertex
 	// Vertical lines
 	for (int i = 0; i < 11; i++){
@@ -214,18 +216,24 @@ void initGrid()
 
 	// *** set up buffer objects
 	// Set up first VAO (representing grid lines)
-	glBindVertexArray(vaoIDs[0]); // Bind the first VAO
-	glGenBuffers(2, vboIDs); // Create two Vertex Buffer Objects for this VAO (positions, colours)
+	// Bind the first VAO
+	glBindVertexArray(vaoIDs[0]);
+	// Create two Vertex Buffer Objects for this VAO (positions, colours)
+	glGenBuffers(2, vboIDs);
 
 	// Grid vertex positions
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]); // Bind the first grid VBO (vertex positions)
-	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridpoints, GL_STATIC_DRAW); // Put the grid points in the VBO
+	// Bind the first grid VBO (vertex positions)
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]);
+	// Put the grid points in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition); // Enable the attribute
 
 	// Grid vertex colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]); // Bind the second grid VBO (vertex colours)
-	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
+	// Bind the second grid VBO (vertex colours)
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]);
+	// Put the grid colours in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridcolours, GL_STATIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
@@ -271,7 +279,8 @@ void initBoard()
 
 	// Grid cell vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardpoints, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardpoints,
+					GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
@@ -468,11 +477,15 @@ void display() {
 	// Draw the board
 	glDrawArrays(GL_TRIANGLES, 0, BOARD_SIZE);
 
-	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
-	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current tile (8 triangles)
+	// Bind the VAO representing the current tile (to be drawn on top of the board)
+	glBindVertexArray(vaoIDs[2]);
+	// Draw the current tile (8 triangles)
+	glDrawArrays(GL_TRIANGLES, 0, 24);
 
-	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
-	glDrawArrays(GL_LINES, 0, 64); // Draw the grid lines (21+11 = 32 lines)
+	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
+	glBindVertexArray(vaoIDs[0]);
+	// Draw the grid lines (21+11 = 32 lines)
+	glDrawArrays(GL_LINES, 0, 64);
 
 
 	glutSwapBuffers();
@@ -550,21 +563,23 @@ void keyboard(unsigned char key, int x, int y) {
 	glutPostRedisplay();
 }
 
-//-------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void idle(void) {
 	glutPostRedisplay();
 	updateGame();
 }
 
-//-------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 	glutInitWindowSize(xsize, ysize);
-	glutInitWindowPosition(680, 178); // Center the game window (well, on a 1920x1080 display)
+
+	// Center the game window (well, on a 1920x1080 display)
+	glutInitWindowPosition(680, 178);
 	glutCreateWindow("Fruit Tetris");
 	glewInit();
 	init();
