@@ -299,6 +299,7 @@ void initCurrentTile() {
 }
 
 void startGame() {
+	gameDone = false;
 	// Initialize the grid, the board, and the current tile
 	initGrid();
 	initBoard();
@@ -497,6 +498,9 @@ const static int DOWN = 103;
 
 // Handle arrow key keypresses
 void special(int key, int x, int y) {
+	if (gameDone) {
+		return;
+	}
 	vec2 startpos = tilepos;
 	if (key == LEFT) {
 		tilepos.x -= 1;
@@ -528,11 +532,13 @@ void special(int key, int x, int y) {
 // Handles standard keypresses
 void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
-		case ' ':
-			colourRot = (colourRot + 1) % 4;
-			updateRot();
-			updateTile();
-			break;
+		if (!gameDone) {
+			case ' ':
+				colourRot = (colourRot + 1) % 4;
+				updateRot();
+				updateTile();
+				break;
+		}
 		case 033: // Both escape key and 'q' cause the game to exit
 		case 'q':
 			exit (EXIT_SUCCESS);
