@@ -1,0 +1,9 @@
+make
+
+./FruitTetris
+
+
+
+Everything should be as specified in the instructions, other that I added the
+other shapes from tetris. I used some c++11 features, so I modified the
+makefile to include -std=c++11.
