@@ -18,6 +18,7 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include <cstdlib>
 #include <iostream>
 #include <random>
+#include <set>
 
 using namespace std;
 
@@ -50,7 +51,7 @@ vec2 allRotationsLshape[][4] = {
 };
 
 std::default_random_engine generator;
-std::uniform_int_distribution<int> rot_distribution(0, 6);
+std::uniform_int_distribution<int> type_distribution(0, 6);
 
 // colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
@@ -64,6 +65,7 @@ vec4 colours[] = {
 	vec4(1.0, 1.0, 0.0, 1.0), // yellow
 };
 std::uniform_int_distribution<int> colour_distribution(0, 4);
+std::uniform_int_distribution<int> rot_distribution(0, 3);
 
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20];
@@ -90,6 +92,14 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 const static int movetime = 200;
 
 bool checkCollide();
+
+bool getOccupied(int x, int y) {
+	return board[x][y];
+}
+
+vec4 getColour(int x, int y) {
+	return boardcolours[(y * 10 + x) * 6];
+}
 
 //------------------------------------------------------------------------------
 bool updateRot() {
@@ -147,15 +157,16 @@ void updateBoard() {
 
 // Called at the start of play and every time a tile is placed
 void newtile() {
-	rot = 0;
+	rot = rot_distribution(generator);
 	colourRot = 0;
 	tilepos = vec2(5, 20); // Put the tile at the top of the board
-	tiletype = rot_distribution(generator);
+	tiletype = type_distribution(generator);
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
 		// Get the 4 pieces of the new tile
 		tile[i] = allRotationsLshape[tiletype][i];
 	}
+	updateRot();
 	for (int i = 0; i < 4; ++i) {
 		vec2 newpos = tilepos;
 		newpos += tile[i];
@@ -167,16 +178,22 @@ void newtile() {
 	for (int i = 0; i < 4; ++i) {
 		vec2 newpos = tilepos;
 		newpos += tile[i];
-		if (board[(int)newpos.x][(int)newpos.y]) {
+		if (getOccupied(newpos.x, newpos.y)) {
 			gameDone = true;
 		}
 	}
 	updateTile();
 
+	std::set<int> selected_colours;
 	// Update the color VBO of current tile
 	vec4 newcolours[24];
 	for (int i = 0; i < 4; ++i) {
-		tilecolour[i] = colours[colour_distribution(generator)];
+		int selection = colour_distribution(generator);
+		while (selected_colours.find(selection) != selected_colours.end()) {
+			selection = colour_distribution(generator);
+		}
+		selected_colours.insert(selection);
+		tilecolour[i] = colours[selection];
 	}
 	for (int i = 0; i < 24; i++) {
 		newcolours[i] = tilecolour[i/6];
@@ -351,12 +368,8 @@ void setSpace(int x, int y, bool occupied, const vec4 &colour) {
 	}
 }
 
-bool getOccupied(int x, int y) {
-	return board[x][y];
-}
-
-vec4 getColour(int x, int y) {
-	return boardcolours[(y * 10 + x) * 6];
+bool operator == (const vec4 &a, const vec4 &b) {
+	return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
 void checkBoard() {
@@ -383,6 +396,36 @@ void checkBoard() {
 			//We need to check the current line again to make sure that it
 			//wasn't filled twice
 			--y;
+		}
+	}
+	for (int y = 0; y < 20; ++y) {
+		for (int x = 1; x < 9; ++x) {
+			vec4 c = getColour(x, y);
+			if (!(c == black) && c == getColour(x - 1, y) && c == getColour(x + 1, y)) {
+				needUpdate = true;
+				for (int z = x-1; z <= x+1; ++z) {
+					setSpace(z, y, false, black);
+				}
+				for (int y2 = y; y2 < 19; ++y2) {
+					for (int x2 = x-1; x2 <= x+1; ++x2) {
+						setSpace(x2, y2, getOccupied(x2, y2+1), getColour(x2, y2+1));
+					}
+				}
+			}
+		}
+	}
+	for (int x = 0; x < 10; ++x) {
+		for (int y = 1; y < 19; ++y) {
+			vec4 c = getColour(x, y);
+			if (!(c == black) && c == getColour(x, y-1) && c == getColour(x, y+1)) {
+				needUpdate = true;
+				for (int z = y-1; z <= y+1; ++z) {
+					setSpace(x, z, false, black);
+				}
+				for (int y2 = y; y2 < 17; ++y2) {
+					setSpace(x, y2-1, getOccupied(x, y2+2), getColour(x, y2+2));
+				}
+			}
 		}
 	}
 	if (needUpdate) {
@@ -419,6 +462,9 @@ bool checkCollide() {
 		vec2 newpos = tilepos;
 		newpos += tile[i];
 		if (newpos.x < 0 || newpos.x > 9) {
+			return true;
+		}
+		if (newpos.y > 20) {
 			return true;
 		}
 	}
