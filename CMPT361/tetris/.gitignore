@@ -1,3 +1,7 @@
 depend
 *.o
 FruitTetris
+*.aux
+*.log
+*.pdf
+*.synctex.gz
