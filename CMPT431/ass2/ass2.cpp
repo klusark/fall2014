@@ -236,8 +236,8 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 		str << buff;
 	}
 	str << "\r\n";
-	const char *out = str.str().c_str();
-	write(_fd, out, strlen(out));
+	std::string s = str.str();
+	write(_fd, s.c_str(), s.length());
 }
 
 void cleanup() {
