@@ -17,9 +17,16 @@
 
 class File {
 public:
-	File(std::string filename) {}
+	File(std::string filename) : _filename(filename), _created(false) {}
 	std::string _filename;
 	std::vector<char> _contents;
+	bool _created;
+};
+
+enum TransactionState {
+	Valid,
+	Commited,
+	Aborted,
 };
 
 class Transaction {
@@ -32,10 +39,13 @@ public:
 	File *_file;
 	std::map<int, std::string> _writes;
 	void write();
+	TransactionState _state;
 };
 
 
 std::set<int> Transaction::_usedIds;
+std::map<std::string, File *> _files;
+std::map<int, Transaction *> _transactions;
 
 Transaction::Transaction(std::string filename) : _filename(filename) {
 	std::default_random_engine generator;
@@ -46,12 +56,13 @@ Transaction::Transaction(std::string filename) : _filename(filename) {
 	}
 	_usedIds.insert(id);
 	_id = id;
+	_state = Valid;
 }
 
 void Transaction::write() {
+	_file->_created = true;
 	for (auto it = _writes.begin(); it != _writes.end(); ++it) {
 		_file->_contents.insert(_file->_contents.end(), it->second.begin(), it->second.end());
-		std::cout << it->first << std::endl;
 	}
 }
 
@@ -68,11 +79,11 @@ public:
 	void bufferData(int length);
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
 	void disconnect();
+	Transaction *findTransaction(int id);
 };
 
 
-std::map<std::string, File *> _files;
-std::map<int, Transaction *> _transactions;
+
 
 Client::Client() {
 	_connected = true;
@@ -117,12 +128,15 @@ void Client::parseMessage(const char *data) {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		std::cout << "Reading file " << filename << std::endl;
-		if (_files.find(filename) == _files.end()) {
+		File *f = nullptr;
+		if (_files.find(filename) != _files.end()) {
+			f = _files[filename];
+		}
+		if (f == nullptr || f->_created == false) {
 			respond("ERROR", 0, 0, 206, "File not found");
 			disconnect();
 			return;
 		}
-		File *f = _files[filename];
 		std::string out(f->_contents.data(), f->_contents.size());
 		respond("ACK", 0, 0, 0, out.c_str());
 	} else if (method == "NEW_TXN") {
@@ -143,35 +157,47 @@ void Client::parseMessage(const char *data) {
 		}
 		t->_file = f;
 	} else if (method == "WRITE") {
-		Transaction *t;
-		if (_transactions.find(id) == _transactions.end()) {
-			respond("ERROR", 0, 0, 201, "Invalid transaction ID");
-			disconnect();
+		Transaction *t = findTransaction(id);
+		if (!t) {
 			return;
 		}
-		t = _transactions[id];
 		bufferData(length);
 		std::string data(_buffer.data(), length);
 		t->_writes[seqno] = data;
 		respond("ACK", t->getId(), seqno, 0);
 	} else if (method == "COMMIT") {
-		Transaction *t;
-		if (_transactions.find(id) == _transactions.end()) {
-			respond("ERROR", 0, 0, 201, "Invalid transaction ID");
-			disconnect();
+		Transaction *t = findTransaction(id);
+		if (!t) {
 			return;
 		}
-		t = _transactions[id];
 		t->write();
 		respond("ACK", t->getId(), seqno, 0);
-		_transactions.erase(id);
-		delete t;
+		t->_state = Commited;
 	} else if (method == "ABORT") {
-
+		Transaction *t = findTransaction(id);
+		if (!t) {
+			return;
+		}
+		t->_state = Aborted;
 	} else {
-		std::cout << "invalid message " << id << std::endl;
+		respond("ERROR", 0, 0, 204, "Wrong message format");
 	}
 	disconnect();
+}
+
+Transaction *Client::findTransaction(int id) {
+	if (_transactions.find(id) == _transactions.end()) {
+		respond("ERROR", 0, 0, 201, "Invalid transaction ID");
+		disconnect();
+		return nullptr;
+	}
+	Transaction *t = _transactions[id];
+	if (t->_state == Commited || t->_state == Aborted) {
+		respond("ERROR", 0, 0, 202, "Invalid operation");
+		disconnect();
+		return nullptr;
+	}
+	return t;
 }
 
 void Client::bufferData(int length) {
