@@ -12,133 +12,240 @@
 #include <sstream>
 #include <random>
 #include <set>
+#include <signal.h>
+#include <map>
+
+class File {
+public:
+	File(std::string filename) {}
+	std::string _filename;
+	std::vector<char> _contents;
+};
 
 class Transaction {
 public:
-    Transaction();
-    int _id;
-    int getId() { return _id; }
-    static std::set<int> _usedIds;
+	Transaction(std::string filename);
+	int _id;
+	int getId() { return _id; }
+	static std::set<int> _usedIds;
+	std::string _filename;
+	File *_file;
+	std::map<int, std::string> _writes;
+	void write();
 };
 
 
 std::set<int> Transaction::_usedIds;
 
-Transaction::Transaction() {
-    std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(1, 0x7fffffff);
-    int id = distribution(generator);
-    while (_usedIds.find(id) != _usedIds.end()) {
-        id = distribution(generator);
-    }
-    _usedIds.insert(id);
-    _id = id;
+Transaction::Transaction(std::string filename) : _filename(filename) {
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(1, 0x7fffffff);
+	int id = distribution(generator);
+	while (_usedIds.find(id) != _usedIds.end()) {
+		id = distribution(generator);
+	}
+	_usedIds.insert(id);
+	_id = id;
+}
+
+void Transaction::write() {
+	for (auto it = _writes.begin(); it != _writes.end(); ++it) {
+		_file->_contents.insert(_file->_contents.end(), it->second.begin(), it->second.end());
+		std::cout << it->first << std::endl;
+	}
 }
 
 class Client {
 public:
-    sockaddr_in _addr;
-    std::thread _thread;
-    int _fd;
-    std::vector<char> _buffer;
-    void readThread();
-    void parseMessage(const char *);
-    void bufferData(int length);
-    void respond(const std::string &method, int id, int seqno, int error, int len, const char *buff = nullptr);
-
-    std::vector<Transaction *> t;
+	sockaddr_in _addr;
+	std::thread _thread;
+	int _fd;
+	std::vector<char> _buffer;
+	bool _connected;
+	Client();
+	void readThread();
+	void parseMessage(const char *);
+	void bufferData(int length);
+	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
+	void disconnect();
 };
 
+
+std::map<std::string, File *> _files;
+std::map<int, Transaction *> _transactions;
+
+Client::Client() {
+	_connected = true;
+}
+
 void Client::readThread() {
-    std::cout << "got a connection" << std::endl;
-    while (1) {
-        char buff[256];
-        ssize_t len = read(_fd, buff, 255);
-        if (len == -1) {
-            return;
-        }
-        _buffer.insert(_buffer.end(), buff, buff + len);
-        int size = _buffer.size();
-        for (int i = 0; i < size; ++i) {
-            if (i < size - 4 && _buffer[i] == '\r'
-                             && _buffer[i + 1] == '\n'
-                             && _buffer[i + 2] == '\r'
-                             && _buffer[i + 3] == '\n') {
-                char *data = _buffer.data();
-                memcpy(buff, data, i);
-                buff[i] = '\0';
-                _buffer.erase(_buffer.begin(), _buffer.begin() + i + 4);
-                parseMessage(buff);
-                break;
-            }
-        }
-    }
+	std::cout << "got a connection" << std::endl;
+	while (_connected) {
+		char buff[256];
+		ssize_t len = read(_fd, buff, 255);
+		if (len == -1) {
+			return;
+		}
+		_buffer.insert(_buffer.end(), buff, buff + len);
+		int size = _buffer.size();
+		for (int i = 0; i < size; ++i) {
+			if (i < size - 4 && _buffer[i] == '\r'
+							 && _buffer[i + 1] == '\n'
+							 && _buffer[i + 2] == '\r'
+							 && _buffer[i + 3] == '\n') {
+				char *data = _buffer.data();
+				memcpy(buff, data, i);
+				buff[i] = '\0';
+				_buffer.erase(_buffer.begin(), _buffer.begin() + i + 4);
+				parseMessage(buff);
+				break;
+			}
+		}
+	}
+	std::cout << "connection close" << std::endl;
 }
 
 void Client::parseMessage(const char *data) {
-    std::stringstream l(data);
-    std::string method;
-    int id = -1;
-    int seqno = -1;
-    int length = -1;
-    l >> method >> id >> seqno >> length;
-    // check data
-    if (method == "READ") {
-        bufferData(length);
-    } else if (method == "NEW_TXN") {
-        if (seqno != 0) {
-            //TODO: Throw error at client
-        }
-        Transaction *t = new Transaction();
-        respond("ACK", t->getId(), 0, 0, 0);
-        close(_fd);
-    } else if (method == "WRITE") {
-        bufferData(length);
-    } else if (method == "COMMIT") {
-    } else if (method == "ABORT") {
+	std::stringstream l(data);
+	std::string method;
+	int id = -1;
+	int seqno = -1;
+	int length = -1;
+	l >> method >> id >> seqno >> length;
+	// check data
+	if (method == "READ") {
+		bufferData(length);
+		std::string filename(_buffer.data(), length);
+		std::cout << "Reading file " << filename << std::endl;
+		if (_files.find(filename) == _files.end()) {
+			respond("ERROR", 0, 0, 206, "File not found");
+			disconnect();
+			return;
+		}
+		File *f = _files[filename];
+		std::string out(f->_contents.data(), f->_contents.size());
+		respond("ACK", 0, 0, 0, out.c_str());
+	} else if (method == "NEW_TXN") {
+		if (seqno != 0) {
+			//TODO: Throw error at client
+		}
+		bufferData(length);
+		std::string filename(_buffer.data(), length);
+		Transaction *t = new Transaction(filename);
+		_transactions[t->getId()] = t;
+		respond("ACK", t->getId(), 0, 0);
+		File *f;
+		if (_files.find(filename) == _files.end()) {
+			f = new File(filename);
+			_files[filename] = f;
+		} else {
+			f = _files[filename];
+		}
+		t->_file = f;
+	} else if (method == "WRITE") {
+		Transaction *t;
+		if (_transactions.find(id) == _transactions.end()) {
+			respond("ERROR", 0, 0, 201, "Invalid transaction ID");
+			disconnect();
+			return;
+		}
+		t = _transactions[id];
+		bufferData(length);
+		std::string data(_buffer.data(), length);
+		t->_writes[seqno] = data;
+		respond("ACK", t->getId(), seqno, 0);
+	} else if (method == "COMMIT") {
+		Transaction *t;
+		if (_transactions.find(id) == _transactions.end()) {
+			respond("ERROR", 0, 0, 201, "Invalid transaction ID");
+			disconnect();
+			return;
+		}
+		t = _transactions[id];
+		t->write();
+		respond("ACK", t->getId(), seqno, 0);
+		_transactions.erase(id);
+		delete t;
+	} else if (method == "ABORT") {
 
-    } else {
-        std::cout << "invalid message " << id << std::endl;
-    }
+	} else {
+		std::cout << "invalid message " << id << std::endl;
+	}
+	disconnect();
 }
 
 void Client::bufferData(int length) {
+	int left = length;
+	while (_buffer.size() < length) {
+		char buff[256];
+		int toread = 256;
+		if (left < 256) {
+			toread = left;
+		}
+		ssize_t len = read(_fd, buff, toread);
+		if (len == -1) {
+			//TODO: Throw an error
+		}
+		left -= len;
+		_buffer.insert(_buffer.end(), buff, buff + len);
+	}
+}
+
+void Client::disconnect() {
+	close(_fd);
+	_connected = false;
 }
 
 void Client::respond(const std::string &method, int id, int seqno, int error,
-                     int len, const char *buff) {
-    std::stringstream str;
-    str << method << " " << id << " " << seqno << " " << error << " " << len
-        << "\r\n\r\n";
+					 const char *buff) {
+	std::stringstream str;
+	int len = 0;
+	if (buff != nullptr) {
+		len = strlen(buff);
+	}
+	str << method << " " << id << " " << seqno << " " << error << " " << len
+		<< "\r\n\r\n";
 
-    if (buff != nullptr) {
-        str << buff;
-    }
-    str << "\r\n";
-    const char *out = str.str().c_str();
-    write(_fd, out, strlen(out));
+	if (buff != nullptr) {
+		str << buff;
+	}
+	str << "\r\n";
+	const char *out = str.str().c_str();
+	write(_fd, out, strlen(out));
 }
 
-int main() {
-    int socketfd = socket(AF_INET, SOCK_STREAM, 0);
-    // check socket
-    sockaddr_in addr;
-    uint16_t port = 7898;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
+void cleanup() {
+}
 
-    if (bind(socketfd, (const sockaddr *)&addr, sizeof(addr)) < 0) {
-        std::cerr << "Could not bind to port: " << port << std::endl;
-        return 1;
-    }
+void my_handler(int param) {
+	cleanup();
+	exit(0);
+}
+
+int main(int argc, char *argv[]) {
+	uint16_t port = 7899;
+	if (argc == 2) {
+		port = atoi(argv[1]);
+	}
+	signal (SIGINT, my_handler);
+	int socketfd = socket(AF_INET, SOCK_STREAM, 0);
+	// check socket
+	sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_port = htons(port);
+
+	if (bind(socketfd, (const sockaddr *)&addr, sizeof(addr)) < 0) {
+		std::cerr << "Could not bind to port: " << port << std::endl;
+		return 1;
+	}
 
 
-    while (1) {
-        listen(socketfd, 10);
-        socklen_t len = 0;
-        Client *c = new Client();
-        c->_fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
-        c->_thread = std::thread(&Client::readThread, c);
-    }
+	while (1) {
+		listen(socketfd, 10);
+		socklen_t len = 0;
+		Client *c = new Client();
+		c->_fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
+		c->_thread = std::thread(&Client::readThread, c);
+	}
 }
