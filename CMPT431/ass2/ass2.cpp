@@ -102,7 +102,7 @@ Client::Client() {
 }
 
 void Client::readThread() {
-	std::cout << "got a connection" << std::endl;
+	//std::cout << "got a connection" << std::endl;
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
@@ -125,7 +125,7 @@ void Client::readThread() {
 			}
 		}
 	}
-	std::cout << "connection close" << std::endl;
+	//std::cout << "connection close" << std::endl;
 }
 
 void Client::parseMessage(const char *data) {
@@ -139,7 +139,7 @@ void Client::parseMessage(const char *data) {
 	if (method == "READ") {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
-		std::cout << "Reading file " << filename << std::endl;
+		//std::cout << "Reading file " << filename << std::endl;
 		std::lock_guard<std::mutex> lock(_file_mutex);
 		File *f = nullptr;
 		if (_files.find(filename) != _files.end()) {
@@ -322,7 +322,11 @@ int main(int argc, char *argv[]) {
 	}
 
 	while (1) {
-		listen(socketfd, 10);
+		int ret = listen(socketfd, 10);
+		if (ret < 0) {
+			std::cerr << "Listen error: " << ret << std::endl;
+			return 1;
+		}
 		socklen_t len = 0;
 		Client *c = new Client();
 		int fd = accept(socketfd, (sockaddr *)&c->_addr, &len);

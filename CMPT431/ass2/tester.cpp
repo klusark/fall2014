@@ -50,8 +50,10 @@ void connectA(int &sockfd, const char *host, int portno) {
          server->h_length);
     serv_addr.sin_port = htons(portno);
 
-    if (connect(sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        fprintf(stderr,"ERROR, no such connection\n");
+	int ret = connect(sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr));
+	if (ret < 0) {
+        fprintf(stderr,"ERROR, no such connection: %d\n", ret);
+		exit(0);
 	}
 }
 
