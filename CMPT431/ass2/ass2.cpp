@@ -64,6 +64,7 @@ Transaction::Transaction(std::string filename) : _filename(filename) {
 	_usedIds.insert(id);
 	_id = id;
 	_state = Valid;
+	_file = nullptr;
 }
 
 void Transaction::write() {
@@ -164,9 +165,6 @@ void Client::parseMessage(const char *data) {
 		std::string filename(_buffer.data(), length);
 		Transaction *t = new Transaction(filename);
 		respond("ACK", t->getId(), 0, 0);
-		_transaction_mutex.lock();
-		_transactions[t->getId()] = t;
-		_transaction_mutex.unlock();
 		std::lock_guard<std::mutex> lock(_file_mutex);
 		File *f;
 		if (_files.find(filename) == _files.end()) {
@@ -176,6 +174,9 @@ void Client::parseMessage(const char *data) {
 			f = _files[filename];
 		}
 		t->_file = f;
+		_transaction_mutex.lock();
+		_transactions[t->getId()] = t;
+		_transaction_mutex.unlock();
 	} else if (method == "WRITE") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
@@ -324,7 +325,12 @@ int main(int argc, char *argv[]) {
 		listen(socketfd, 10);
 		socklen_t len = 0;
 		Client *c = new Client();
-		c->_fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
+		int fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
+		if (fd <= 0) {
+			std::cerr << "Accept error: " << fd << std::endl;
+			return 1;
+		}
+		c->_fd = fd;
 		{
 			std::lock_guard<std::mutex> lock(workMutex);
 			workQueue.push(c);
