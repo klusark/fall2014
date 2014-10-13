@@ -10,11 +10,12 @@
 #include <cstring>
 #include <string>
 #include <sstream>
-#include <random>
 #include <set>
 #include <signal.h>
 #include <map>
 #include <mutex>
+#include <queue>
+#include <condition_variable>
 
 class File {
 public:
@@ -56,11 +57,9 @@ std::mutex _transaction_mutex, _file_mutex;
 
 Transaction::Transaction(std::string filename) : _filename(filename) {
 	std::lock_guard<std::mutex> lock(_usedIds_mutex);
-	std::default_random_engine generator;
-	std::uniform_int_distribution<int> distribution(1, 0x7fffffff);
-	int id = distribution(generator);
+	int id = rand();
 	while (_usedIds.find(id) != _usedIds.end()) {
-		id = distribution(generator);
+		id = rand();
 	}
 	_usedIds.insert(id);
 	_id = id;
@@ -82,7 +81,6 @@ void Transaction::writeData(int seqno, const std::string &data) {
 class Client {
 public:
 	sockaddr_in _addr;
-	std::thread _thread;
 	int _fd;
 	std::vector<char> _buffer;
 	bool _connected;
@@ -186,17 +184,19 @@ void Client::parseMessage(const char *data) {
 		bufferData(length);
 		std::string data(_buffer.data(), length);
 		t->writeData(seqno, data);
-		respond("ACK", t->getId(), seqno, 0);
+		int idout = t->getId();
 		t->_mutex.unlock();
+		respond("ACK", idout, seqno, 0);
 	} else if (method == "COMMIT") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
 			return;
 		}
 		t->write();
-		respond("ACK", t->getId(), seqno, 0);
+		int idout = t->getId();
 		t->_state = Commited;
 		t->_mutex.unlock();
+		respond("ACK", idout, seqno, 0);
 	} else if (method == "ABORT") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
@@ -277,6 +277,26 @@ void my_handler(int param) {
 	exit(0);
 }
 
+std::mutex workMutex;
+std::condition_variable workCondition;
+std::queue<Client *> workQueue;
+
+void workThread() {
+	while (1) {
+		Client *c = nullptr;
+		{
+			std::unique_lock<std::mutex> lock(workMutex);
+			while (workQueue.size() == 0) {
+				workCondition.wait(lock);
+			}
+			c = workQueue.front();
+			workQueue.pop();
+		}
+		c->readThread();
+		delete c;
+	}
+}
+
 int main(int argc, char *argv[]) {
 	uint16_t port = 7899;
 	if (argc == 2) {
@@ -295,12 +315,20 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	std::vector<std::thread> workers;
+	for (int i = 0; i < 32; ++i) {
+		workers.push_back(std::thread(workThread));
+	}
 
 	while (1) {
 		listen(socketfd, 10);
 		socklen_t len = 0;
 		Client *c = new Client();
 		c->_fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
-		c->_thread = std::thread(&Client::readThread, c);
+		{
+			std::lock_guard<std::mutex> lock(workMutex);
+			workQueue.push(c);
+		}
+		workCondition.notify_all();
 	}
 }
