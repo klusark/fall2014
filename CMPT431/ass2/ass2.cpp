@@ -14,6 +14,7 @@
 #include <set>
 #include <signal.h>
 #include <map>
+#include <mutex>
 
 class File {
 public:
@@ -21,6 +22,7 @@ public:
 	std::string _filename;
 	std::vector<char> _contents;
 	bool _created;
+	std::mutex _mutex;
 };
 
 enum TransactionState {
@@ -35,19 +37,25 @@ public:
 	int _id;
 	int getId() { return _id; }
 	static std::set<int> _usedIds;
+	static std::mutex _usedIds_mutex;
 	std::string _filename;
 	File *_file;
 	std::map<int, std::string> _writes;
 	void write();
+	void writeData(int seqno, const std::string &data);
 	TransactionState _state;
+	std::mutex _mutex;
 };
 
 
 std::set<int> Transaction::_usedIds;
+std::mutex Transaction::_usedIds_mutex;
 std::map<std::string, File *> _files;
 std::map<int, Transaction *> _transactions;
+std::mutex _transaction_mutex, _file_mutex;
 
 Transaction::Transaction(std::string filename) : _filename(filename) {
+	std::lock_guard<std::mutex> lock(_usedIds_mutex);
 	std::default_random_engine generator;
 	std::uniform_int_distribution<int> distribution(1, 0x7fffffff);
 	int id = distribution(generator);
@@ -60,10 +68,15 @@ Transaction::Transaction(std::string filename) : _filename(filename) {
 }
 
 void Transaction::write() {
+	std::lock_guard<std::mutex> lock(_file->_mutex);
 	_file->_created = true;
 	for (auto it = _writes.begin(); it != _writes.end(); ++it) {
 		_file->_contents.insert(_file->_contents.end(), it->second.begin(), it->second.end());
 	}
+}
+
+void Transaction::writeData(int seqno, const std::string &data) {
+	_writes[seqno] = data;
 }
 
 class Client {
@@ -94,8 +107,8 @@ void Client::readThread() {
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
-		if (len == -1) {
-			return;
+		if (len <= 0) {
+			break;
 		}
 		_buffer.insert(_buffer.end(), buff, buff + len);
 		int size = _buffer.size();
@@ -128,16 +141,22 @@ void Client::parseMessage(const char *data) {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		std::cout << "Reading file " << filename << std::endl;
+		std::lock_guard<std::mutex> lock(_file_mutex);
 		File *f = nullptr;
 		if (_files.find(filename) != _files.end()) {
 			f = _files[filename];
+			f->_mutex.lock();
 		}
 		if (f == nullptr || f->_created == false) {
+			if (f) {
+				f->_mutex.unlock();
+			}
 			respond("ERROR", 0, 0, 206, "File not found");
 			disconnect();
 			return;
 		}
 		std::string out(f->_contents.data(), f->_contents.size());
+		f->_mutex.unlock();
 		respond("ACK", 0, 0, 0, out.c_str());
 	} else if (method == "NEW_TXN") {
 		if (seqno != 0) {
@@ -146,8 +165,11 @@ void Client::parseMessage(const char *data) {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		Transaction *t = new Transaction(filename);
-		_transactions[t->getId()] = t;
 		respond("ACK", t->getId(), 0, 0);
+		_transaction_mutex.lock();
+		_transactions[t->getId()] = t;
+		_transaction_mutex.unlock();
+		std::lock_guard<std::mutex> lock(_file_mutex);
 		File *f;
 		if (_files.find(filename) == _files.end()) {
 			f = new File(filename);
@@ -163,8 +185,9 @@ void Client::parseMessage(const char *data) {
 		}
 		bufferData(length);
 		std::string data(_buffer.data(), length);
-		t->_writes[seqno] = data;
+		t->writeData(seqno, data);
 		respond("ACK", t->getId(), seqno, 0);
+		t->_mutex.unlock();
 	} else if (method == "COMMIT") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
@@ -173,12 +196,14 @@ void Client::parseMessage(const char *data) {
 		t->write();
 		respond("ACK", t->getId(), seqno, 0);
 		t->_state = Commited;
+		t->_mutex.unlock();
 	} else if (method == "ABORT") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
 			return;
 		}
 		t->_state = Aborted;
+		t->_mutex.unlock();
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 	}
@@ -186,13 +211,16 @@ void Client::parseMessage(const char *data) {
 }
 
 Transaction *Client::findTransaction(int id) {
+	std::lock_guard<std::mutex> lock(_transaction_mutex);
 	if (_transactions.find(id) == _transactions.end()) {
 		respond("ERROR", 0, 0, 201, "Invalid transaction ID");
 		disconnect();
 		return nullptr;
 	}
 	Transaction *t = _transactions[id];
+	t->_mutex.lock();
 	if (t->_state == Commited || t->_state == Aborted) {
+		t->_mutex.unlock();
 		respond("ERROR", 0, 0, 202, "Invalid operation");
 		disconnect();
 		return nullptr;
@@ -209,7 +237,8 @@ void Client::bufferData(int length) {
 			toread = left;
 		}
 		ssize_t len = read(_fd, buff, toread);
-		if (len == -1) {
+		if (len <= 0) {
+			return;
 			//TODO: Throw an error
 		}
 		left -= len;

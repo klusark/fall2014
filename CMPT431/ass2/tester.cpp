@@ -105,10 +105,10 @@ int main(int argc, char *argv[]) {
 		str << method << " " << t << " " << s << " " << message.length()
 			<< "\r\n\r\n" << message << "\r\n";
 		std::string out = str.str();
-		//std::cout << "Sending: " << out << std::endl;
+		std::cout << "Sending: " << out << std::endl;
 		write(sockfd, out.c_str(), out.size());
 		std::string response = readResponse(sockfd);
-		//std::cout << "Receiving: " << response << std::endl;
+		std::cout << "Receiving: " << response << std::endl;
 		std::stringstream r(response);
 		std::string rmethod, rt, rs, re, rl, rmessage;
 		r >> rmethod >> rt >> rs >> re >> rl;
