@@ -174,7 +174,6 @@ void Client::parseMessage(const char *data) {
 			t->_mutex.unlock();
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			respond("ACK", t->getId(), 0, 0);
 			std::lock_guard<std::mutex> lock(_file_mutex);
 			File *f;
 			if (_files.find(filename) == _files.end()) {
@@ -187,6 +186,7 @@ void Client::parseMessage(const char *data) {
 			_transaction_mutex.lock();
 			_transactions[t->getId()] = t;
 			_transaction_mutex.unlock();
+			respond("ACK", t->getId(), 0, 0);
 		}
 	} else if (method == "WRITE") {
 		Transaction *t = findTransaction(id, seqno);
