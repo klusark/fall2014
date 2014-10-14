@@ -17,6 +17,7 @@ std::string getVar(const std::string &var) {
 	return _vars[var];
 }
 int curline = 1;
+bool verbose = false;
 
 void checkVar(std::string &var) {
 	if (var[0] == '$') {
@@ -39,6 +40,10 @@ void connectA(int &sockfd, const char *host, int portno) {
     struct hostent *server;
     sockaddr_in serv_addr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) {
+		std::cerr << "socket error" << std::endl;
+		exit(0);
+	}
     server = gethostbyname(host);
     if (server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
@@ -63,8 +68,8 @@ std::string readResponse(int sockfd) {
 	while (1) {
 		char buff[256];
 		ssize_t len = read(sockfd, buff, 255);
-		if (len == -1) {
-				return "";
+		if (len <= 0) {
+				return out;
 		}
 		out += std::string(buff, len);
 		int size = out.size();
@@ -111,10 +116,17 @@ int main(int argc, char *argv[]) {
 		str << method << " " << t << " " << s << " " << message.length()
 			<< "\r\n\r\n" << message << "\r\n";
 		std::string out = str.str();
-		std::cout << "Sending: " << out << std::endl;
-		write(sockfd, out.c_str(), out.size());
+		if (verbose) {
+			std::cout << "Sending: " << out << std::endl;
+		}
+		int outlen = write(sockfd, out.c_str(), out.size());
+		if (outlen != out.size()) {
+			std::cerr << "write error " << outlen << std::endl;
+		}
 		std::string response = readResponse(sockfd);
-		std::cout << "Receiving: " << response << std::endl;
+		if (verbose) {
+			std::cout << "Receiving: " << response << std::endl;
+		}
 		std::stringstream r(response);
 		std::string rmethod, rt, rs, re, rl, rmessage;
 		r >> rmethod >> rt >> rs >> re >> rl;

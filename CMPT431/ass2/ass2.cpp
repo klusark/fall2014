@@ -17,6 +17,8 @@
 #include <queue>
 #include <condition_variable>
 
+bool verbose = false;
+
 class File {
 public:
 	File(std::string filename) : _filename(filename), _created(false) {}
@@ -144,6 +146,9 @@ void Client::parseMessage(const char *data) {
 	int seqno = -1;
 	int length = -1;
 	l >> method >> id >> seqno >> length;
+	if (verbose) {
+		std::cout << "Get: " << data << std::endl;
+	}
 	// check data
 	if (method == "READ") {
 		bufferData(length);
@@ -278,7 +283,6 @@ void Client::bufferData(int length) {
 }
 
 void Client::disconnect() {
-	close(_fd);
 	_connected = false;
 }
 
@@ -297,6 +301,9 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 	}
 	str << "\r\n";
 	std::string s = str.str();
+	if (verbose) {
+		std::cout << "Send: " << s << std::endl;
+	}
 	write(_fd, s.c_str(), s.length());
 }
 
@@ -338,7 +345,7 @@ void my_handler(int param) {
 }
 
 
-void workThread() {
+void workThread(int threadid) {
 	while (!_endThreads) {
 		Client *c = nullptr;
 		{
@@ -355,7 +362,13 @@ void workThread() {
 			_clients.erase(c);
 			clientsMutex.unlock();
 		}
+		if (verbose) {
+			std::cout << "Thread working: " << threadid << std::endl;
+		}
 		c->readThread();
+		if (verbose) {
+			std::cout << "Thread done: " << threadid << std::endl;
+		}
 		delete c;
 	}
 }
@@ -379,7 +392,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	for (int i = 0; i < 32; ++i) {
-		_workers.push_back(std::thread(workThread));
+		_workers.push_back(std::thread(workThread, i));
 	}
 
 	while (1) {
