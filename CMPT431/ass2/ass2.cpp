@@ -81,24 +81,33 @@ void Transaction::writeData(int seqno, const std::string &data) {
 
 class Client {
 public:
-	sockaddr_in _addr;
-	int _fd;
-	std::vector<char> _buffer;
-	bool _connected;
 	Client();
+	~Client();
 	void readThread();
 	void parseMessage(const char *);
 	void bufferData(int length);
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
 	void disconnect();
 	Transaction *findTransaction(int id);
-};
 
+	int _fd;
+	sockaddr_in _addr;
+private:
+	std::vector<char> _buffer;
+	bool _connected;
+};
 
 
 
 Client::Client() {
 	_connected = true;
+	_fd = 0;
+}
+
+Client::~Client() {
+	if (_fd != 0) {
+		close(_fd);
+	}
 }
 
 void Client::readThread() {
@@ -290,33 +299,29 @@ void cleanup() {
 }
 
 void my_handler(int param) {
-	std::cout<< "Cleaning up" << std::endl;
 	cleanup();
 	exit(0);
 }
 
 
 void workThread() {
-	std::cout<<"Starting thread" <<std::endl;
 	while (!_endThreads) {
 		Client *c = nullptr;
 		{
 			std::unique_lock<std::mutex> lock(workMutex);
 			while (workQueue.size() == 0) {
 				workCondition.wait(lock);
-				std::cout << "wakeup" << std::endl;
 				if (_endThreads) {
-					std::cout<<"Ending thread" <<std::endl;
 					return;
 				}
 			}
 			c = workQueue.front();
 			workQueue.pop();
+			_clients.erase(c);
 		}
 		c->readThread();
 		delete c;
 	}
-	std::cout<<"Ending thread" <<std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -349,6 +354,7 @@ int main(int argc, char *argv[]) {
 		}
 		socklen_t len = 0;
 		Client *c = new Client();
+		_clients.insert(c);
 		int fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
 		if (fd <= 0) {
 			std::cerr << "Accept error: " << fd << std::endl;
