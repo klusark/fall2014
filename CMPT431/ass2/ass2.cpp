@@ -286,8 +286,12 @@ std::vector<std::thread> _workers;
 std::mutex workMutex;
 std::condition_variable workCondition;
 std::queue<Client *> workQueue;
+int bindfd = 0;
 
 void cleanup() {
+	if (_endThreads) {
+		return;
+	}
 	_endThreads = true;
 	workCondition.notify_all();
 	for (auto &worker : _workers) {
@@ -296,6 +300,13 @@ void cleanup() {
 	for (auto c : _clients) {
 		delete c;
 	}
+	for (auto t : _transactions) {
+		delete t.second;
+	}
+	for (auto f : _files) {
+		delete f.second;
+	}
+	close(bindfd);
 }
 
 void my_handler(int param) {
@@ -330,14 +341,14 @@ int main(int argc, char *argv[]) {
 		port = atoi(argv[1]);
 	}
 	signal (SIGINT, my_handler);
-	int socketfd = socket(AF_INET, SOCK_STREAM, 0);
+	bindfd = socket(AF_INET, SOCK_STREAM, 0);
 	// check socket
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = INADDR_ANY;
 	addr.sin_port = htons(port);
 
-	if (bind(socketfd, (const sockaddr *)&addr, sizeof(addr)) < 0) {
+	if (bind(bindfd, (const sockaddr *)&addr, sizeof(addr)) < 0) {
 		std::cerr << "Could not bind to port: " << port << std::endl;
 		return 1;
 	}
@@ -347,7 +358,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	while (1) {
-		int ret = listen(socketfd, 10);
+		int ret = listen(bindfd, 10);
 		if (ret < 0) {
 			std::cerr << "Listen error: " << ret << std::endl;
 			return 1;
@@ -355,10 +366,10 @@ int main(int argc, char *argv[]) {
 		socklen_t len = 0;
 		Client *c = new Client();
 		_clients.insert(c);
-		int fd = accept(socketfd, (sockaddr *)&c->_addr, &len);
+		int fd = accept(bindfd, (sockaddr *)&c->_addr, &len);
 		if (fd <= 0) {
 			std::cerr << "Accept error: " << fd << std::endl;
-			return 1;
+			break;
 		}
 		c->_fd = fd;
 		{
@@ -367,4 +378,5 @@ int main(int argc, char *argv[]) {
 		}
 		workCondition.notify_all();
 	}
+	cleanup();
 }
