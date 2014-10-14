@@ -214,7 +214,7 @@ void Client::parseMessage(const char *data) {
 Transaction *Client::findTransaction(int id) {
 	std::lock_guard<std::mutex> lock(_transaction_mutex);
 	if (_transactions.find(id) == _transactions.end()) {
-		respond("ERROR", 0, 0, 201, "Invalid transaction ID");
+		respond("ERROR", id, 0, 201, "Invalid transaction ID");
 		disconnect();
 		return nullptr;
 	}

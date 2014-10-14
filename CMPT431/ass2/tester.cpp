@@ -16,6 +16,7 @@ std::map<std::string, std::string> _vars;
 std::string getVar(const std::string &var) {
 	return _vars[var];
 }
+int curline = 1;
 
 void checkVar(std::string &var) {
 	if (var[0] == '$') {
@@ -30,7 +31,7 @@ void checkResponse(std::string r, std::string e) {
 		_vars[e] = r;
 	} else if (e[0] == '*') {
 	} else if (r != e) {
-		std::cout << "Error " << r << " != " << e << std::endl;
+		std::cout << "Error line: " << curline << " " << r << " != " << e << std::endl;
 	}
 }
 
@@ -90,19 +91,22 @@ int main(int argc, char *argv[]) {
     portno = atoi(argv[2]);
 	int i = 0;
 
-	while (std::cin.good()) {
+	std::string line;
+	while (std::getline(std::cin, line)) {
+		if (line.length() == 0 || line[0] == '#') {
+			++curline;
+			continue;
+		}
 		connectA(sockfd, argv[1], portno);
+		std::stringstream strr(line);
 		std::string method, t, s, message, exmethod, ext, exs, exe, exmessage;
-		std::cin >> method >> t >> s >> message >> exmethod >> ext >> exs >> exe >> exmessage;
+		strr >> method >> t >> s >> message >> exmethod >> ext >> exs >> exe >> exmessage;
 		if (!std::cin.good()) {
 			return 0;
 		}
 		checkVar(t);
 		checkVar(s);
 		checkVar(message);
-		//checkVar(ext);
-		//checkVar(exs);
-		//checkVar(exmessage);
 		std::stringstream str;
 		str << method << " " << t << " " << s << " " << message.length()
 			<< "\r\n\r\n" << message << "\r\n";
@@ -124,6 +128,7 @@ int main(int argc, char *argv[]) {
 		checkResponse(rmessage, exmessage);
 		close(sockfd);
 		++i;
+		++curline;
 	}
-	std::cout << i << std::endl;
+	//std::cout << i << std::endl;
 }

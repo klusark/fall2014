@@ -1,0 +1,47 @@
+WRITE 	5	0	*			ERROR 	5 	0 201 	* No writing to unknown transactions
+COMMIT	5	0	*			ERROR 	5 	0 201 	* No committing to unknown transactions
+ABORT	5	0	*			ERROR 	5 	0 201 	* No abortting to unknown transactions
+BLAH	0	0	asdklfj		ERROR 	0 	0 204 	* Blah is not a valid operation
+READ	0	0	test.txt	ERROR 	0 	0 206 	* No reading non existant files
+READ	0	0	*			ERROR	0	0 204	* Reading without any data specified.
+
+NEW_TXN	0	0	file1.txt	ACK		$T	0 0		* Start transaction
+WRITE	$T	1	a			ACK		$T	1 0		* Write a
+WRITE	$T	2	b			ACK		$T	2 0		* Write b
+WRITE	$T	3	c			ACK		$T	3 0		* Write c
+COMMIT	$T	4	*			ACK		$T	4 0		* Commit transaction
+
+READ 	0	0	file1.txt	ACK		0	0 0		abc Read the data that was just written
+
+COMMIT	$T	4	*			ACK		$T	4 0		* Commit transaction again
+
+READ 	0	0	file1.txt	ACK		0	0 0		abc Make sure it wasn't written again
+
+NEW_TXN	0	0	file2.txt	ACK		$T	0 0		*	Start Transaction
+READ	0	0	file2.txt	ERROR 	0 	0 206 	*	File has not yet been commited
+WRITE	$T	1	a			ACK		$T	1 0		*
+WRITE	$T	4	d			ACK		$T	4 0		*
+WRITE	$T	3	c			ACK		$T	3 0		*
+COMMIT	$T	5	*			ASK_RESEND	$T	2 0		* The transaction isn't finished
+READ	0	0	file2.txt	ERROR 	0 	0 206 	*	File has not yet been commited
+WRITE 	$T	2	b			ACK		$T	2 0		*	Write the last data
+COMMIT	$T	5	*			ACK		$T	5 0		* 	Commit
+
+ABORT	$T	2	*			ERROR	$T	2 202	* 	Abort commited transaction
+
+WRITE 	$T	2	b			ERROR	$T	2 202	*	Try writing to a transaction that has been commited
+
+READ 	0	0	file2.txt	ACK		0	0 0		abcd Make sure the data was all written in order
+
+
+NEW_TXN	0	0	file3.txt	ACK		$T	0 0		* Start transaction
+WRITE 	$T	1	a			ACK		$T	1 0		* Write data
+ABORT	$T	2	*			ACK		$T	2 0		* Abort transaction
+READ	0	0	file3.txt	ERROR 	0 	0 206 	*	Transaction was aborted
+COMMIT	$T	2	*			ERROR	$T	2 202	* 	Commit aborted transaction
+ABORT	$T	2	*			ERROR	$T	2 202	* 	Abort aborted transaction
+
+NEW_TXN	0	0	file4.txt	ACK		$T	0 0		* Start transaction
+WRITE	$T	1	*			ERROR	$T	1 204	* Write with no data
+
+NEW_TXN	0	0	*			ERROR 	0	0 204	* Transaction with no filename
