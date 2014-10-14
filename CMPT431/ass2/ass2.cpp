@@ -270,25 +270,45 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 	write(_fd, s.c_str(), s.length());
 }
 
-void cleanup() {
-}
-
-void my_handler(int param) {
-	cleanup();
-	exit(0);
-}
+bool _endThreads = false;
+std::set<Client *> _clients;
+std::vector<std::thread> _workers;
 
 std::mutex workMutex;
 std::condition_variable workCondition;
 std::queue<Client *> workQueue;
 
+void cleanup() {
+	_endThreads = true;
+	workCondition.notify_all();
+	for (auto &worker : _workers) {
+		worker.join();
+	}
+	for (auto c : _clients) {
+		delete c;
+	}
+}
+
+void my_handler(int param) {
+	std::cout<< "Cleaning up" << std::endl;
+	cleanup();
+	exit(0);
+}
+
+
 void workThread() {
-	while (1) {
+	std::cout<<"Starting thread" <<std::endl;
+	while (!_endThreads) {
 		Client *c = nullptr;
 		{
 			std::unique_lock<std::mutex> lock(workMutex);
 			while (workQueue.size() == 0) {
 				workCondition.wait(lock);
+				std::cout << "wakeup" << std::endl;
+				if (_endThreads) {
+					std::cout<<"Ending thread" <<std::endl;
+					return;
+				}
 			}
 			c = workQueue.front();
 			workQueue.pop();
@@ -296,6 +316,7 @@ void workThread() {
 		c->readThread();
 		delete c;
 	}
+	std::cout<<"Ending thread" <<std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -316,9 +337,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	std::vector<std::thread> workers;
 	for (int i = 0; i < 32; ++i) {
-		workers.push_back(std::thread(workThread));
+		_workers.push_back(std::thread(workThread));
 	}
 
 	while (1) {
