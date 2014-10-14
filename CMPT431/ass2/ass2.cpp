@@ -202,11 +202,26 @@ void Client::parseMessage(const char *data) {
 		if (!t) {
 			return;
 		}
-		t->write();
 		int idout = t->getId();
-		t->_state = Commited;
-		t->_mutex.unlock();
-		respond("ACK", idout, seqno, 0);
+		int last = 0;
+		bool stillwrite = true;
+		for (auto write : t->_writes) {
+			if (write.first != last + 1) {
+				for (int i = last + 1; i < write.first; ++i) {
+					respond("ASK_RESEND", idout, i, 0);
+					stillwrite = false;
+				}
+			}
+			last = write.first;
+		}
+		if (stillwrite) {
+			t->write();
+			t->_state = Commited;
+			t->_mutex.unlock();
+			respond("ACK", idout, seqno, 0);
+		} else {
+			t->_mutex.unlock();
+		}
 	} else if (method == "ABORT") {
 		Transaction *t = findTransaction(id);
 		if (!t) {
@@ -283,7 +298,7 @@ bool _endThreads = false;
 std::set<Client *> _clients;
 std::vector<std::thread> _workers;
 
-std::mutex workMutex;
+std::mutex workMutex, clientsMutex;
 std::condition_variable workCondition;
 std::queue<Client *> workQueue;
 int bindfd = 0;
@@ -297,9 +312,11 @@ void cleanup() {
 	for (auto &worker : _workers) {
 		worker.join();
 	}
+	clientsMutex.lock();
 	for (auto c : _clients) {
 		delete c;
 	}
+	clientsMutex.unlock();
 	for (auto t : _transactions) {
 		delete t.second;
 	}
@@ -328,7 +345,9 @@ void workThread() {
 			}
 			c = workQueue.front();
 			workQueue.pop();
+			clientsMutex.lock();
 			_clients.erase(c);
+			clientsMutex.unlock();
 		}
 		c->readThread();
 		delete c;
@@ -365,7 +384,9 @@ int main(int argc, char *argv[]) {
 		}
 		socklen_t len = 0;
 		Client *c = new Client();
+		clientsMutex.lock();
 		_clients.insert(c);
+		clientsMutex.unlock();
 		int fd = accept(bindfd, (sockaddr *)&c->_addr, &len);
 		if (fd <= 0) {
 			std::cerr << "Accept error: " << fd << std::endl;
