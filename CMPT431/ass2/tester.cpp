@@ -31,7 +31,7 @@ void checkResponse(std::string r, std::string e) {
 		_vars[e] = r;
 	} else if (e[0] == '*') {
 	} else if (r != e) {
-		std::cout << "Error line: " << curline << " " << r << " != " << e << std::endl;
+		std::cerr << "Error line: " << curline << " " << r << " != " << e << std::endl;
 	}
 }
 

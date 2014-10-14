@@ -88,7 +88,7 @@ public:
 	void bufferData(int length);
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
 	void disconnect();
-	Transaction *findTransaction(int id);
+	Transaction *findTransaction(int id, int seqno);
 
 	int _fd;
 	sockaddr_in _addr;
@@ -167,48 +167,53 @@ void Client::parseMessage(const char *data) {
 		f->_mutex.unlock();
 		respond("ACK", 0, 0, 0, out.c_str());
 	} else if (method == "NEW_TXN") {
-		if (seqno != 0) {
-			//TODO: Throw error at client
-		}
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		Transaction *t = new Transaction(filename);
-		respond("ACK", t->getId(), 0, 0);
-		std::lock_guard<std::mutex> lock(_file_mutex);
-		File *f;
-		if (_files.find(filename) == _files.end()) {
-			f = new File(filename);
-			_files[filename] = f;
+		if (filename.size() == 0 || seqno != 0) {
+			t->_mutex.unlock();
+			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			f = _files[filename];
+			respond("ACK", t->getId(), 0, 0);
+			std::lock_guard<std::mutex> lock(_file_mutex);
+			File *f;
+			if (_files.find(filename) == _files.end()) {
+				f = new File(filename);
+				_files[filename] = f;
+			} else {
+				f = _files[filename];
+			}
+			t->_file = f;
+			_transaction_mutex.lock();
+			_transactions[t->getId()] = t;
+			_transaction_mutex.unlock();
 		}
-		t->_file = f;
-		_transaction_mutex.lock();
-		_transactions[t->getId()] = t;
-		_transaction_mutex.unlock();
 	} else if (method == "WRITE") {
-		Transaction *t = findTransaction(id);
+		Transaction *t = findTransaction(id, seqno);
 		if (!t) {
 			return;
 		}
 		bufferData(length);
 		std::string data(_buffer.data(), length);
-		t->writeData(seqno, data);
-		int idout = t->getId();
-		t->_mutex.unlock();
-		respond("ACK", idout, seqno, 0);
+		if (data.size() == 0) {
+			t->_mutex.unlock();
+			respond("ERROR", id, seqno, 204, "Wrong message format");
+		} else {
+			t->writeData(seqno, data);
+			t->_mutex.unlock();
+			respond("ACK", id, seqno, 0);
+		}
 	} else if (method == "COMMIT") {
-		Transaction *t = findTransaction(id);
+		Transaction *t = findTransaction(id, seqno);
 		if (!t) {
 			return;
 		}
-		int idout = t->getId();
 		int last = 0;
 		bool stillwrite = true;
 		for (auto write : t->_writes) {
 			if (write.first != last + 1) {
 				for (int i = last + 1; i < write.first; ++i) {
-					respond("ASK_RESEND", idout, i, 0);
+					respond("ASK_RESEND", id, i, 0);
 					stillwrite = false;
 				}
 			}
@@ -218,27 +223,28 @@ void Client::parseMessage(const char *data) {
 			t->write();
 			t->_state = Commited;
 			t->_mutex.unlock();
-			respond("ACK", idout, seqno, 0);
+			respond("ACK", id, seqno, 0);
 		} else {
 			t->_mutex.unlock();
 		}
 	} else if (method == "ABORT") {
-		Transaction *t = findTransaction(id);
+		Transaction *t = findTransaction(id, seqno);
 		if (!t) {
 			return;
 		}
 		t->_state = Aborted;
 		t->_mutex.unlock();
+		respond("ACK", id, seqno, 0);
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 	}
 	disconnect();
 }
 
-Transaction *Client::findTransaction(int id) {
+Transaction *Client::findTransaction(int id, int seqno) {
 	std::lock_guard<std::mutex> lock(_transaction_mutex);
 	if (_transactions.find(id) == _transactions.end()) {
-		respond("ERROR", id, 0, 201, "Invalid transaction ID");
+		respond("ERROR", id, seqno, 201, "Invalid transaction ID");
 		disconnect();
 		return nullptr;
 	}
@@ -246,7 +252,7 @@ Transaction *Client::findTransaction(int id) {
 	t->_mutex.lock();
 	if (t->_state == Commited || t->_state == Aborted) {
 		t->_mutex.unlock();
-		respond("ERROR", 0, 0, 202, "Invalid operation");
+		respond("ERROR", id, seqno, 202, "Invalid operation");
 		disconnect();
 		return nullptr;
 	}
