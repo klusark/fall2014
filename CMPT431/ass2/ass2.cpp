@@ -373,10 +373,35 @@ void workThread(int threadid) {
 	}
 }
 
+void usage(const char *name) {
+	std::cerr <<
+				"Usage: " << name << " [OPTIONS]" << std::endl <<
+				"  -h\t\tPrint this help" << std::endl <<
+				"  -ip\t\tThe ip address to bind to" << std::endl <<
+				"  -port\t\tThe porn to bind to" << std::endl <<
+				"  -dir\t\tThe dir with files" << std::endl;
+}
+
 int main(int argc, char *argv[]) {
-	uint16_t port = 7899;
-	if (argc == 2) {
-		port = atoi(argv[1]);
+	uint16_t port = 8080;
+	std::string dir = "";
+	std::string address = "127.0.0.1";
+	for (int i = 1; i < argc - 1; ++i) {
+		std::string arg = argv[i];
+		if (arg == "-dir") {
+			dir = argv[i + 1];
+		} else if (arg == "-port") {
+			port = atoi(argv[i + 1]);
+		} else if (arg == "-ip") {
+			address = argv[i + 1];
+		} else if (arg == "-h") {
+			usage(argv[0]);
+			return 1;
+		}
+	}
+	if (dir == "") {
+		usage(argv[0]);
+		return 1;
 	}
 	signal (SIGINT, my_handler);
 	bindfd = socket(AF_INET, SOCK_STREAM, 0);

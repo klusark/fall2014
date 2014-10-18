@@ -1,7 +1,7 @@
 all: ass2 tester generator
 
 ass2: ass2.cpp
-	$(CXX) -std=c++11 -O3 -ggdb -pthread -o ass2 ass2.cpp
+	$(CXX) -std=c++11 -O0 -ggdb -pthread -o ass2 ass2.cpp
 
 tester: tester.cpp
 	$(CXX) -std=c++11 -O3 -ggdb -pthread -o tester tester.cpp
