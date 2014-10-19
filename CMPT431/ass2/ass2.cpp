@@ -383,7 +383,7 @@ void usage(const char *name) {
 }
 
 int main(int argc, char *argv[]) {
-	uint16_t port = 8080;
+	std::string port = "8080";
 	std::string dir = "";
 	std::string address = "127.0.0.1";
 	for (int i = 1; i < argc - 1; ++i) {
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
 		if (arg == "-dir") {
 			dir = argv[i + 1];
 		} else if (arg == "-port") {
-			port = atoi(argv[i + 1]);
+			port = argv[i + 1];
 		} else if (arg == "-ip") {
 			address = argv[i + 1];
 		} else if (arg == "-h") {
@@ -404,14 +404,27 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	signal (SIGINT, my_handler);
-	bindfd = socket(AF_INET, SOCK_STREAM, 0);
-	// check socket
-	sockaddr_in addr;
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(port);
 
-	if (bind(bindfd, (const sockaddr *)&addr, sizeof(addr)) < 0) {
+
+	addrinfo hints;
+	addrinfo *addr = nullptr;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if (getaddrinfo(address.c_str(), port.c_str(), &hints, &addr) < 0) {
+		std::cerr << "Could not get address: " << address << std::endl;
+		return 1;
+	}
+
+	bindfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	if (bindfd < 0) {
+		std::cerr << "Could not create socket" << std::endl;
+		return 1;
+	}
+
+	if (bind(bindfd, addr->ai_addr, addr->ai_addrlen) < 0) {
 		std::cerr << "Could not bind to port: " << port << std::endl;
 		return 1;
 	}
