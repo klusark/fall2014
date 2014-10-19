@@ -330,8 +330,11 @@ void cleanup() {
 	if (_endThreads) {
 		return;
 	}
-	_endThreads = true;
-	workCondition.notify_all();
+	{
+		std::lock_guard<std::mutex> lock(workMutex);
+		_endThreads = true;
+		workCondition.notify_all();
+	}
 	for (auto &worker : _workers) {
 		worker.join();
 	}
@@ -463,8 +466,8 @@ int main(int argc, char *argv[]) {
 		{
 			std::lock_guard<std::mutex> lock(workMutex);
 			workQueue.push(c);
+			workCondition.notify_all();
 		}
-		workCondition.notify_all();
 	}
 	cleanup();
 }
