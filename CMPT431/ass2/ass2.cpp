@@ -197,6 +197,7 @@ void Client::parseMessage(const char *data) {
 			Transaction *t = new Transaction(filename);
 			File *f = File::getFile(filename, true);
 			t->_file = f;
+			f->_mutex.unlock();
 			_transaction_mutex.lock();
 			_transactions[t->getId()] = t;
 			_transaction_mutex.unlock();
