@@ -25,6 +25,7 @@ class File {
 public:
 	File(std::string filename) : _filename(filename), _created(false) {}
 	static File *getFile(const std::string &filename, bool create = true);
+	void write(const std::string &data);
 	std::string _filename;
 	std::vector<char> _contents;
 	bool _created;
@@ -46,6 +47,10 @@ File *File::getFile(const std::string &filename, bool create) {
 	}
 	_file_mutex.unlock();
 	return f;
+}
+
+void File::write(const std::string &data) {
+	_contents.insert(_contents.end(), data.begin(), data.end());
 }
 
 enum TransactionState {
@@ -91,7 +96,7 @@ void Transaction::write() {
 	std::lock_guard<std::mutex> lock(_file->_mutex);
 	_file->_created = true;
 	for (auto it = _writes.begin(); it != _writes.end(); ++it) {
-		_file->_contents.insert(_file->_contents.end(), it->second.begin(), it->second.end());
+		_file->write(it->second);
 	}
 }
 
