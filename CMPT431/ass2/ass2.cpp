@@ -19,14 +19,34 @@
 
 bool verbose = false;
 
+std::mutex _transaction_mutex, _file_mutex;
+
 class File {
 public:
 	File(std::string filename) : _filename(filename), _created(false) {}
+	static File *getFile(const std::string &filename, bool create = true);
 	std::string _filename;
 	std::vector<char> _contents;
 	bool _created;
 	std::mutex _mutex;
 };
+
+std::map<std::string, File *> _files;
+
+File *File::getFile(const std::string &filename, bool create) {
+	_file_mutex.lock();
+	File *f = nullptr;
+	if (_files.find(filename) != _files.end()) {
+		f = _files[filename];
+		f->_mutex.lock();
+	} else if (create) {
+		f = new File(filename);
+		f->_mutex.lock();
+		_files[filename] = f;
+	}
+	_file_mutex.unlock();
+	return f;
+}
 
 enum TransactionState {
 	Valid,
@@ -53,9 +73,7 @@ public:
 
 std::set<int> Transaction::_usedIds;
 std::mutex Transaction::_usedIds_mutex;
-std::map<std::string, File *> _files;
 std::map<int, Transaction *> _transactions;
-std::mutex _transaction_mutex, _file_mutex;
 
 Transaction::Transaction(std::string filename) : _filename(filename) {
 	std::lock_guard<std::mutex> lock(_usedIds_mutex);
@@ -153,13 +171,7 @@ void Client::parseMessage(const char *data) {
 	if (method == "READ") {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
-		//std::cout << "Reading file " << filename << std::endl;
-		std::lock_guard<std::mutex> lock(_file_mutex);
-		File *f = nullptr;
-		if (_files.find(filename) != _files.end()) {
-			f = _files[filename];
-			f->_mutex.lock();
-		}
+		File *f = File::getFile(filename, false);
 		if (f == nullptr || f->_created == false) {
 			if (f) {
 				f->_mutex.unlock();
@@ -174,19 +186,11 @@ void Client::parseMessage(const char *data) {
 	} else if (method == "NEW_TXN") {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
-		Transaction *t = new Transaction(filename);
 		if (filename.size() == 0 || seqno != 0) {
-			t->_mutex.unlock();
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			std::lock_guard<std::mutex> lock(_file_mutex);
-			File *f;
-			if (_files.find(filename) == _files.end()) {
-				f = new File(filename);
-				_files[filename] = f;
-			} else {
-				f = _files[filename];
-			}
+			Transaction *t = new Transaction(filename);
+			File *f = File::getFile(filename, true);
 			t->_file = f;
 			_transaction_mutex.lock();
 			_transactions[t->getId()] = t;
