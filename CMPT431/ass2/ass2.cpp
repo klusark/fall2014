@@ -318,12 +318,11 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 }
 
 bool _endThreads = false;
-std::set<Client *> _clients;
 std::vector<std::thread> _workers;
 
 std::mutex workMutex, clientsMutex;
 std::condition_variable workCondition;
-std::queue<Client *> workQueue;
+std::queue<int> workQueue;
 int bindfd = 0;
 
 void cleanup() {
@@ -338,11 +337,6 @@ void cleanup() {
 	for (auto &worker : _workers) {
 		worker.join();
 	}
-	clientsMutex.lock();
-	for (auto c : _clients) {
-		delete c;
-	}
-	clientsMutex.unlock();
 	for (auto t : _transactions) {
 		delete t.second;
 	}
@@ -360,7 +354,7 @@ void my_handler(int param) {
 
 void workThread(int threadid) {
 	while (!_endThreads) {
-		Client *c = nullptr;
+		int fd = 0;
 		{
 			std::unique_lock<std::mutex> lock(workMutex);
 			while (workQueue.size() == 0) {
@@ -369,20 +363,18 @@ void workThread(int threadid) {
 					return;
 				}
 			}
-			c = workQueue.front();
+			fd = workQueue.front();
 			workQueue.pop();
-			clientsMutex.lock();
-			_clients.erase(c);
-			clientsMutex.unlock();
 		}
 		if (verbose) {
 			std::cout << "Thread working: " << threadid << std::endl;
 		}
-		c->readThread();
+		Client c;
+		c._fd = fd;
+		c.readThread();
 		if (verbose) {
 			std::cout << "Thread done: " << threadid << std::endl;
 		}
-		delete c;
 	}
 }
 
@@ -453,20 +445,16 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 		socklen_t len = 0;
-		Client *c = new Client();
-		clientsMutex.lock();
-		_clients.insert(c);
-		clientsMutex.unlock();
-		int fd = accept(bindfd, (sockaddr *)&c->_addr, &len);
+		sockaddr_in addr;
+		int fd = accept(bindfd, (sockaddr *)&addr, &len);
 		if (fd <= 0) {
 			std::cerr << "Accept error: " << fd << std::endl;
 			break;
 		}
-		c->_fd = fd;
 		{
 			std::lock_guard<std::mutex> lock(workMutex);
-			workQueue.push(c);
-			workCondition.notify_all();
+			workQueue.push(fd);
+			workCondition.notify_one();
 		}
 	}
 	cleanup();
