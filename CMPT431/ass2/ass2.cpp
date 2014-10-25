@@ -16,20 +16,25 @@
 #include <mutex>
 #include <queue>
 #include <condition_variable>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 bool verbose = false;
 
 std::mutex _transaction_mutex, _file_mutex;
+std::string outDir = "";
 
 class File {
 public:
-	File(std::string filename) : _filename(filename), _created(false) {}
+	File(std::string filename) : _filename(filename), _created(false) {
+		_path = outDir + "/" + _filename;
+	}
 	static File *getFile(const std::string &filename, bool create = true);
 	void write(const std::string &data);
 	int getLength();
 	void readTo(int fd);
 	std::string _filename;
-	std::vector<char> _contents;
+	std::string _path;
 	bool _created;
 	std::mutex _mutex;
 };
@@ -52,16 +57,28 @@ File *File::getFile(const std::string &filename, bool create) {
 }
 
 void File::write(const std::string &data) {
-	_contents.insert(_contents.end(), data.begin(), data.end());
+	int fd = open(_path.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0777);
+	::write(fd, data.c_str(), data.length());
+	close(fd);
 }
 
 void File::readTo(int fd) {
-	int len = getLength();
-	::write(fd, _contents.data(), len);
+	int infd = open(_path.c_str(), O_RDONLY);
+	char buff[1024];
+	while (1) {
+		size_t len = read(infd, buff, 1024);
+		::write(fd, buff, len);
+		if (len != 1024) {
+			break;
+		}
+	}
+	close(infd);
 }
 
 int File::getLength() {
-	return _contents.size();
+	struct stat st;
+	stat(_path.c_str(), &st);
+	return st.st_size;
 }
 
 enum TransactionState {
@@ -412,12 +429,11 @@ void usage(const char *name) {
 
 int main(int argc, char *argv[]) {
 	std::string port = "8080";
-	std::string dir = "";
 	std::string address = "127.0.0.1";
 	for (int i = 1; i < argc - 1; ++i) {
 		std::string arg = argv[i];
 		if (arg == "-dir") {
-			dir = argv[i + 1];
+			outDir = argv[i + 1];
 		} else if (arg == "-port") {
 			port = argv[i + 1];
 		} else if (arg == "-ip") {
@@ -427,7 +443,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 	}
-	if (dir == "") {
+	if (outDir == "") {
 		usage(argv[0]);
 		return 1;
 	}
