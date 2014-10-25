@@ -26,6 +26,8 @@ public:
 	File(std::string filename) : _filename(filename), _created(false) {}
 	static File *getFile(const std::string &filename, bool create = true);
 	void write(const std::string &data);
+	int getLength();
+	void readTo(int fd);
 	std::string _filename;
 	std::vector<char> _contents;
 	bool _created;
@@ -51,6 +53,15 @@ File *File::getFile(const std::string &filename, bool create) {
 
 void File::write(const std::string &data) {
 	_contents.insert(_contents.end(), data.begin(), data.end());
+}
+
+void File::readTo(int fd) {
+	int len = getLength();
+	::write(fd, _contents.data(), len);
+}
+
+int File::getLength() {
+	return _contents.size();
 }
 
 enum TransactionState {
@@ -111,7 +122,9 @@ public:
 	void readThread();
 	void parseMessage(const char *);
 	void bufferData(int length);
+	void respondHeader(const std::string &method, int id, int seqno, int error, int content_length);
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
+	void respond(const std::string &method, int id, int seqno, int error, File *f);
 	void disconnect();
 	Transaction *findTransaction(int id, int seqno);
 
@@ -185,9 +198,7 @@ void Client::parseMessage(const char *data) {
 			disconnect();
 			return;
 		}
-		std::string out(f->_contents.data(), f->_contents.size());
-		f->_mutex.unlock();
-		respond("ACK", 0, 0, 0, out.c_str());
+		respond("ACK", 0, 0, 0, f);
 	} else if (method == "NEW_TXN") {
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
@@ -297,19 +308,31 @@ void Client::disconnect() {
 }
 
 void Client::respond(const std::string &method, int id, int seqno, int error,
+					 File *f) {
+	int len = f->getLength();
+	respondHeader(method, id, seqno, error, len);
+	f->readTo(_fd);
+	write(_fd, "\r\n", 2);
+	f->_mutex.unlock();
+}
+
+void Client::respond(const std::string &method, int id, int seqno, int error,
 					 const char *buff) {
-	std::stringstream str;
 	int len = 0;
 	if (buff != nullptr) {
 		len = strlen(buff);
 	}
-	str << method << " " << id << " " << seqno << " " << error << " " << len
+	respondHeader(method, id, seqno, error, len);
+	write(_fd, buff, len);
+	write(_fd, "\r\n", 2);
+}
+
+void Client::respondHeader(const std::string &method, int id, int seqno, int error,
+					 int content_length) {
+	std::stringstream str;
+	str << method << " " << id << " " << seqno << " " << error << " " << content_length
 		<< "\r\n\r\n";
 
-	if (buff != nullptr) {
-		str << buff;
-	}
-	str << "\r\n";
 	std::string s = str.str();
 	if (verbose) {
 		std::cout << "Send: " << s << std::endl;
