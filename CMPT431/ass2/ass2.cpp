@@ -23,6 +23,7 @@ bool verbose = false;
 
 std::mutex _transaction_mutex, _file_mutex;
 std::string outDir = "";
+bool _endThreads = false;
 
 class File {
 public:
@@ -176,11 +177,19 @@ Client::~Client() {
 }
 
 void Client::readThread() {
-	//std::cout << "got a connection" << std::endl;
+	timeval tv;
+	memset(&tv, 0, sizeof(tv));
+
+	tv.tv_sec = 1;
+
+	setsockopt(_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
 		if (len <= 0) {
+			if (!_endThreads && _connected && errno == EAGAIN) {
+				continue;
+			}
 			break;
 		}
 		_buffer.insert(_buffer.end(), buff, buff + len);
@@ -199,7 +208,6 @@ void Client::readThread() {
 			}
 		}
 	}
-	//std::cout << "connection close" << std::endl;
 }
 
 void Client::parseMessage(const char *data) {
@@ -322,6 +330,9 @@ void Client::bufferData(int length) {
 		}
 		ssize_t len = read(_fd, buff, toread);
 		if (len <= 0) {
+			if (_connected && errno == EAGAIN) {
+				continue;
+			}
 			return;
 			//TODO: Throw an error
 		}
@@ -367,7 +378,6 @@ void Client::respondHeader(const std::string &method, int id, int seqno, int err
 	write(_fd, s.c_str(), s.length());
 }
 
-bool _endThreads = false;
 std::vector<std::thread> _workers;
 
 std::mutex workMutex, clientsMutex;
