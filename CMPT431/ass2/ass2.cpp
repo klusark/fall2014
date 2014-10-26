@@ -47,10 +47,20 @@ File *File::getFile(const std::string &filename, bool create) {
 	if (_files.find(filename) != _files.end()) {
 		f = _files[filename];
 		f->_mutex.lock();
-	} else if (create) {
-		f = new File(filename);
-		f->_mutex.lock();
-		_files[filename] = f;
+	} else {
+		std::string path = outDir + "/" + filename;
+		struct stat st;
+		bool created = false;
+		int val = stat(path.c_str(), &st);
+		if (val == 0) {
+			created = true;
+		}
+		if (create || created) {
+			f = new File(filename);
+			f->_mutex.lock();
+			_files[filename] = f;
+			f->_created = created;
+		}
 	}
 	_file_mutex.unlock();
 	return f;
