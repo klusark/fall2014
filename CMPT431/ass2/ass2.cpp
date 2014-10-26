@@ -18,6 +18,7 @@
 #include <condition_variable>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <linux/limits.h>
 
 bool verbose = false;
 
@@ -227,6 +228,11 @@ void Client::parseMessage(const char *data) {
 	}
 	// check data
 	if (method == "READ") {
+		if (length <= 0 || length > PATH_MAX) {
+			respond("ERROR", 0, 0, 206, "File not found");
+			disconnect();
+			return;
+		}
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		File *f = File::getFile(filename, false);
@@ -240,6 +246,11 @@ void Client::parseMessage(const char *data) {
 		}
 		respond("ACK", 0, 0, 0, f);
 	} else if (method == "NEW_TXN") {
+		if (length <= 0 || length > PATH_MAX) {
+			respond("ERROR", 0, 0, 206, "File not found");
+			disconnect();
+			return;
+		}
 		bufferData(length);
 		std::string filename(_buffer.data(), length);
 		if (filename.size() == 0 || seqno != 0) {
