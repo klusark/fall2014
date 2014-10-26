@@ -217,6 +217,11 @@ void Client::parseMessage(const char *data) {
 	int seqno = -1;
 	int length = -1;
 	l >> method >> id >> seqno >> length;
+	if (l.fail()) {
+		respond("ERROR", 0, 0, 204, "Wrong message format");
+		disconnect();
+		return;
+	}
 	if (verbose) {
 		std::cout << "Get: " << data << std::endl;
 	}
