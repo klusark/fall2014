@@ -19,12 +19,15 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <linux/limits.h>
+#include <sqlite3.h>
 
 bool verbose = false;
 
 std::mutex _transaction_mutex, _file_mutex;
 std::string outDir = "";
 bool _endThreads = false;
+sqlite3 *_db;
+sqlite3_stmt *_transaction_stmt, *_update_stmt, *_write_stmt, *_delete_stmt;
 
 class File {
 public:
@@ -101,7 +104,7 @@ enum TransactionState {
 
 class Transaction {
 public:
-	Transaction(std::string filename);
+	Transaction(std::string filename, bool create = true);
 	int _id;
 	int getId() { return _id; }
 	static std::set<int> _usedIds;
@@ -111,6 +114,7 @@ public:
 	std::map<int, std::string> _writes;
 	void write();
 	void writeData(int seqno, const std::string &data);
+	void setState(TransactionState s);
 	TransactionState _state;
 	std::mutex _mutex;
 };
@@ -120,16 +124,41 @@ std::set<int> Transaction::_usedIds;
 std::mutex Transaction::_usedIds_mutex;
 std::map<int, Transaction *> _transactions;
 
-Transaction::Transaction(std::string filename) : _filename(filename) {
-	std::lock_guard<std::mutex> lock(_usedIds_mutex);
-	int id = rand();
-	while (_usedIds.find(id) != _usedIds.end()) {
-		id = rand();
-	}
-	_usedIds.insert(id);
-	_id = id;
+Transaction::Transaction(std::string filename, bool create) : _filename(filename) {
 	_state = Valid;
 	_file = nullptr;
+	_id = 0;
+	if (create) {
+		int id = rand();
+		_usedIds_mutex.lock();
+		while (_usedIds.find(id) != _usedIds.end()) {
+			id = rand();
+		}
+		_usedIds.insert(id);
+		_usedIds_mutex.unlock();
+		_id = id;
+		sqlite3_bind_int(_transaction_stmt, 1, _id);
+		sqlite3_bind_text(_transaction_stmt, 2, filename.c_str(),
+							filename.length(), SQLITE_STATIC);
+		sqlite3_bind_int(_transaction_stmt, 3, _state);
+		sqlite3_step(_transaction_stmt);
+		sqlite3_reset(_transaction_stmt);
+	}
+}
+void Transaction::setState(TransactionState s) {
+	_state = s;
+
+	sqlite3_bind_int(_update_stmt, 1, _state);
+	sqlite3_bind_int(_update_stmt, 2, _id);
+	sqlite3_step(_update_stmt);
+	sqlite3_reset(_update_stmt);
+
+	if (s == Aborted) {
+		_writes.clear();
+		sqlite3_bind_int(_delete_stmt, 1, _id);
+		sqlite3_step(_delete_stmt);
+		sqlite3_reset(_delete_stmt);
+	}
 }
 
 void Transaction::write() {
@@ -138,10 +167,21 @@ void Transaction::write() {
 	for (auto it = _writes.begin(); it != _writes.end(); ++it) {
 		_file->write(it->second);
 	}
+
+	sqlite3_bind_int(_delete_stmt, 1, _id);
+	sqlite3_step(_delete_stmt);
+	sqlite3_reset(_delete_stmt);
 }
 
 void Transaction::writeData(int seqno, const std::string &data) {
 	_writes[seqno] = data;
+
+	sqlite3_bind_int(_write_stmt, 1, _id);
+	sqlite3_bind_int(_write_stmt, 2, seqno);
+	sqlite3_bind_text(_write_stmt, 3, data.c_str(), data.length(),
+						SQLITE_STATIC);
+	sqlite3_step(_write_stmt);
+	sqlite3_reset(_write_stmt);
 }
 
 class Client {
@@ -298,7 +338,7 @@ void Client::parseMessage(const char *data) {
 		}
 		if (stillwrite) {
 			t->write();
-			t->_state = Commited;
+			t->setState(Commited);
 			t->_mutex.unlock();
 			respond("ACK", id, seqno, 0);
 		} else {
@@ -309,7 +349,7 @@ void Client::parseMessage(const char *data) {
 		if (!t) {
 			return;
 		}
-		t->_state = Aborted;
+		t->setState(Aborted);
 		t->_mutex.unlock();
 		respond("ACK", id, seqno, 0);
 	} else {
@@ -420,6 +460,11 @@ void cleanup() {
 		delete f.second;
 	}
 	close(bindfd);
+	sqlite3_finalize(_transaction_stmt);
+	sqlite3_finalize(_update_stmt);
+	sqlite3_finalize(_write_stmt);
+	sqlite3_finalize(_delete_stmt);
+	sqlite3_close(_db);
 }
 
 void my_handler(int param) {
@@ -485,6 +530,62 @@ int main(int argc, char *argv[]) {
 	}
 	signal (SIGINT, my_handler);
 
+	int rc = sqlite3_open("test.db", &_db);
+
+	if (rc != 0 ) {
+		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(_db));
+	}
+
+	srand(time(nullptr));
+
+	const char *sql;
+	sql = "CREATE TABLE IF NOT EXISTS Transactions("
+			"id			INT PRIMARY KEY	NOT NULL,"
+			"filename	TEXT			NOT NULL,"
+			"state		INT				NOT NULL);";
+
+	sqlite3_exec(_db, sql, nullptr, 0, nullptr);
+
+	sql = "CREATE TABLE IF NOT EXISTS Writes("
+			"tid	INT		NOT NULL,"
+			"seqno	INT		NOT NULL,"
+			"value	TEXT	NOT NULL);";
+	sqlite3_exec(_db, sql, nullptr, 0, nullptr);
+
+	sqlite3_prepare_v2(_db, "INSERT INTO Transactions VALUES(?,?,?);", -1,
+						&_transaction_stmt, nullptr);
+
+	sqlite3_prepare_v2(_db, "UPDATE Transactions SET state=(?) WHERE id=(?);",
+						-1, &_update_stmt, nullptr);
+
+	sqlite3_prepare_v2(_db, "INSERT INTO Writes VALUES(?,?,?);", -1,
+						&_write_stmt, nullptr);
+
+	sqlite3_prepare_v2(_db, "DELETE FROM Writes WHERE tid=(?);",
+						-1, &_delete_stmt, nullptr);
+
+	sqlite3_stmt *stmt;
+	int ret = sqlite3_prepare_v2(_db, "SELECT * FROM Transactions;", -1, &stmt, nullptr);
+	ret = sqlite3_step(stmt);
+	while (ret == SQLITE_ROW) {
+		int val = sqlite3_column_int(stmt, 0);
+		Transaction::_usedIds.insert(val);
+		Transaction *t = new Transaction((const char *)sqlite3_column_text(stmt, 1), false);
+		t->_id = val;
+		t->_state = (TransactionState)sqlite3_column_int(stmt, 2);
+		ret = sqlite3_step(stmt);
+	}
+	sqlite3_finalize(stmt);
+
+	sqlite3_prepare_v2(_db, "SELECT * FROM Writes;", -1, &stmt, nullptr);
+	ret = sqlite3_step(stmt);
+	while (ret == SQLITE_ROW) {
+		int id = sqlite3_column_int(stmt, 0);
+		Transaction *t = _transactions[id];
+		t->writeData(sqlite3_column_int(stmt, 1), (const char *)sqlite3_column_text(stmt, 2));
+		ret = sqlite3_step(stmt);
+	}
+	sqlite3_finalize(stmt);
 
 	addrinfo hints;
 	addrinfo *addr = nullptr;
