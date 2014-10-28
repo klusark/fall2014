@@ -580,7 +580,8 @@ int main(int argc, char *argv[]) {
 	}
 	signal (SIGINT, my_handler);
 
-	int rc = sqlite3_open("test.db", &_db);
+	std::string dblocation = outDir + "/.db";
+	int rc = sqlite3_open(dblocation.c_str(), &_db);
 
 	if (rc != 0 ) {
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(_db));
