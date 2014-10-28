@@ -259,6 +259,32 @@ void Client::readThread() {
 void Client::parseMessage(const char *data) {
 	std::stringstream l(data);
 	std::string method;
+	{
+		bool error = false;
+		int len = strlen(data);
+		int numspaces = 0;
+		for (int i = 0; i < len; ++i) {
+			if (data[i] == ' ') {
+				numspaces++;
+				continue;
+			}
+			if (numspaces != 0) {
+				if (!isdigit(data[i])) {
+					error = true;
+				}
+			} else if (!(isalpha(data[i]) || data[i] == '_')) {
+				error = true;
+			}
+		}
+		if (numspaces != 3) {
+			error = true;
+		}
+		if (error) {
+			respond("ERROR", 0, 0, 204, "Wrong message format");
+			disconnect();
+			return;
+		}
+	}
 	int id = -1;
 	int seqno = -1;
 	int length = -1;

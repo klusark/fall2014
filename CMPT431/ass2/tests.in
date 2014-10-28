@@ -50,3 +50,6 @@ NEW_TXN	0	0	file5.txt	ACK		$T	0 0		* Start transaction
 WRITE	$T	1	a			ACK		$T	1 0		* Write data
 WRITE	$T	1	b			ERROR	$T	1 202	* Can't send same transaction twice
 
+asdf	0	0	*			ERROR	0	0 204	* Invalid
+a9sdf	0	0	*			ERROR	0	0 204	* Invalid
+NEW_TXN	as	0	*			ERROR	0	0 204	* Invalid
