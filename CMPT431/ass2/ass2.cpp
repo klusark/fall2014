@@ -195,7 +195,7 @@ public:
 	~Client();
 	void readThread();
 	void parseMessage(const char *);
-	void bufferData(int length);
+	int bufferData(int length);
 	void respondHeader(const std::string &method, int id, int seqno, int error, int content_length);
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
 	void respond(const std::string &method, int id, int seqno, int error, File *f);
@@ -304,7 +304,9 @@ void Client::parseMessage(const char *data) {
 			disconnect();
 			return;
 		}
-		bufferData(length);
+		if (bufferData(length) < 0) {
+			return;
+		}
 		std::string filename(_buffer.data(), length);
 		File *f = File::getFile(filename, false);
 		if (f == nullptr || f->_created == false) {
@@ -322,7 +324,9 @@ void Client::parseMessage(const char *data) {
 			disconnect();
 			return;
 		}
-		bufferData(length);
+		if (bufferData(length) < 0) {
+			return;
+		}
 		std::string filename(_buffer.data(), length);
 		if (filename.size() == 0 || seqno != 0) {
 			respond("ERROR", id, seqno, 204, "Wrong message format");
@@ -341,7 +345,9 @@ void Client::parseMessage(const char *data) {
 		if (!t) {
 			return;
 		}
-		bufferData(length);
+		if (bufferData(length) < 0) {
+			return;
+		}
 		std::string data(_buffer.data(), length);
 		if (data.size() == 0) {
 			t->_mutex.unlock();
@@ -426,7 +432,7 @@ Transaction *Client::findTransaction(int id, int seqno, bool noCommitErr) {
 	return t;
 }
 
-void Client::bufferData(int length) {
+int Client::bufferData(int length) {
 	int left = length;
 	while (_buffer.size() < length) {
 		char buff[256];
@@ -439,12 +445,12 @@ void Client::bufferData(int length) {
 			if (_connected && errno == EAGAIN) {
 				continue;
 			}
-			return;
-			//TODO: Throw an error
+			return -1;
 		}
 		left -= len;
 		_buffer.insert(_buffer.end(), buff, buff + len);
 	}
+	return 0;
 }
 
 void Client::disconnect() {
