@@ -365,7 +365,6 @@ void Client::parseMessage(const char *data) {
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 	}
-	disconnect();
 }
 
 Transaction *Client::findTransaction(int id, int seqno) {
@@ -594,8 +593,8 @@ int main(int argc, char *argv[]) {
 		if (_transactions.find(id) != _transactions.end()) {
 			Transaction *t = _transactions[id];
 			t->writeData(sqlite3_column_int(stmt, 1), (const char *)sqlite3_column_text(stmt, 2));
-			ret = sqlite3_step(stmt);
 		}
+		ret = sqlite3_step(stmt);
 	}
 	sqlite3_finalize(stmt);
 
