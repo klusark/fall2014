@@ -3,7 +3,7 @@ COMMIT	5	0	*			ERROR 	5 	0 201 	* No committing to unknown transactions
 ABORT	5	0	*			ERROR 	5 	0 201 	* No abortting to unknown transactions
 BLAH	0	0	asdklfj		ERROR 	0 	0 204 	* Blah is not a valid operation
 READ	0	0	test.txt	ERROR 	0 	0 206 	* No reading non existant files
-READ	0	0	*			ERROR	0	0 204	* Reading without any data specified.
+READ	0	0	*			ERROR	0	0 206	* Reading without any data specified.
 
 NEW_TXN	0	0	file1.txt	ACK		$T	0 0		* Start transaction
 WRITE	$T	1	a			ACK		$T	1 0		* Write a
@@ -44,7 +44,7 @@ ABORT	$T	2	*			ERROR	$T	2 202	* 	Abort aborted transaction
 NEW_TXN	0	0	file4.txt	ACK		$T	0 0		* Start transaction
 WRITE	$T	1	*			ERROR	$T	1 204	* Write with no data
 
-NEW_TXN	0	0	*			ERROR 	0	0 204	* Transaction with no filename
+NEW_TXN	0	0	*			ERROR 	0	0 206	* Transaction with no filename
 
 NEW_TXN	0	0	file5.txt	ACK		$T	0 0		* Start transaction
 WRITE	$T	1	a			ACK		$T	1 0		* Write data
@@ -53,3 +53,6 @@ WRITE	$T	1	b			ERROR	$T	1 202	* Can't send same transaction twice
 asdf	0	0	*			ERROR	0	0 204	* Invalid
 a9sdf	0	0	*			ERROR	0	0 204	* Invalid
 NEW_TXN	as	0	*			ERROR	0	0 204	* Invalid
+
+ABORT	$T	0	asdf		ERROR	0	0 204	*
+COMMIT	$T	0	asdf		ERROR	0	0 204	*

@@ -200,7 +200,7 @@ public:
 	void respond(const std::string &method, int id, int seqno, int error, const char *buff = nullptr);
 	void respond(const std::string &method, int id, int seqno, int error, File *f);
 	void disconnect();
-	Transaction *findTransaction(int id, int seqno);
+	Transaction *findTransaction(int id, int seqno, bool noCommitErr = false);
 
 	int _fd;
 	sockaddr_in _addr;
@@ -357,8 +357,17 @@ void Client::parseMessage(const char *data) {
 			}
 		}
 	} else if (method == "COMMIT") {
-		Transaction *t = findTransaction(id, seqno);
+		if (length != 0) {
+			respond("ERROR", 0, 0, 204, "Wrong message format");
+			disconnect();
+			return;
+		}
+		Transaction *t = findTransaction(id, seqno, true);
 		if (!t) {
+			return;
+		}
+		if (t->_state == Commited) {
+			respond("ACK", id, seqno, 0);
 			return;
 		}
 		int last = 0;
@@ -381,6 +390,11 @@ void Client::parseMessage(const char *data) {
 			t->_mutex.unlock();
 		}
 	} else if (method == "ABORT") {
+		if (length != 0) {
+			respond("ERROR", 0, 0, 204, "Wrong message format");
+			disconnect();
+			return;
+		}
 		Transaction *t = findTransaction(id, seqno);
 		if (!t) {
 			return;
@@ -390,10 +404,11 @@ void Client::parseMessage(const char *data) {
 		respond("ACK", id, seqno, 0);
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
+		disconnect();
 	}
 }
 
-Transaction *Client::findTransaction(int id, int seqno) {
+Transaction *Client::findTransaction(int id, int seqno, bool noCommitErr) {
 	std::lock_guard<std::mutex> lock(_transaction_mutex);
 	if (_transactions.find(id) == _transactions.end()) {
 		respond("ERROR", id, seqno, 201, "Invalid transaction ID");
@@ -402,7 +417,7 @@ Transaction *Client::findTransaction(int id, int seqno) {
 	}
 	Transaction *t = _transactions[id];
 	t->_mutex.lock();
-	if (t->_state == Commited || t->_state == Aborted) {
+	if ((!noCommitErr && t->_state == Commited) || t->_state == Aborted) {
 		t->_mutex.unlock();
 		respond("ERROR", id, seqno, 202, "Invalid operation");
 		disconnect();
