@@ -114,6 +114,7 @@ public:
 	std::map<int, std::string> _writes;
 	void write();
 	void writeData(int seqno, const std::string &data);
+	bool hasWrite(int seqno);
 	void setState(TransactionState s);
 	TransactionState _state;
 	std::mutex _mutex;
@@ -182,6 +183,10 @@ void Transaction::writeData(int seqno, const std::string &data) {
 						SQLITE_STATIC);
 	sqlite3_step(_write_stmt);
 	sqlite3_reset(_write_stmt);
+}
+
+bool Transaction::hasWrite(int seqno) {
+	return _writes.find(seqno) == _writes.end();
 }
 
 class Client {
@@ -316,9 +321,14 @@ void Client::parseMessage(const char *data) {
 			t->_mutex.unlock();
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			t->writeData(seqno, data);
-			t->_mutex.unlock();
-			respond("ACK", id, seqno, 0);
+			if (t->hasWrite(seqno)) {
+				t->writeData(seqno, data);
+				t->_mutex.unlock();
+				respond("ACK", id, seqno, 0);
+			} else {
+				t->_mutex.unlock();
+				respond("ERROR", id, seqno, 202, "Invalid operation.");
+			}
 		}
 	} else if (method == "COMMIT") {
 		Transaction *t = findTransaction(id, seqno);
@@ -581,9 +591,11 @@ int main(int argc, char *argv[]) {
 	ret = sqlite3_step(stmt);
 	while (ret == SQLITE_ROW) {
 		int id = sqlite3_column_int(stmt, 0);
-		Transaction *t = _transactions[id];
-		t->writeData(sqlite3_column_int(stmt, 1), (const char *)sqlite3_column_text(stmt, 2));
-		ret = sqlite3_step(stmt);
+		if (_transactions.find(id) != _transactions.end()) {
+			Transaction *t = _transactions[id];
+			t->writeData(sqlite3_column_int(stmt, 1), (const char *)sqlite3_column_text(stmt, 2));
+			ret = sqlite3_step(stmt);
+		}
 	}
 	sqlite3_finalize(stmt);
 
