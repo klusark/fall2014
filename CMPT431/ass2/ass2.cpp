@@ -584,7 +584,8 @@ int main(int argc, char *argv[]) {
 		usage(argv[0]);
 		return 1;
 	}
-	signal (SIGINT, my_handler);
+	signal(SIGINT, my_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 	std::string dblocation = outDir + "/.db";
 	int rc = sqlite3_open(dblocation.c_str(), &_db);
