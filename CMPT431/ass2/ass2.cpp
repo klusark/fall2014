@@ -462,7 +462,6 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 	int len = f->getLength();
 	respondHeader(method, id, seqno, error, len);
 	f->readTo(_fd);
-	write(_fd, "\r\n", 2);
 	f->_mutex.unlock();
 }
 
@@ -474,7 +473,6 @@ void Client::respond(const std::string &method, int id, int seqno, int error,
 	}
 	respondHeader(method, id, seqno, error, len);
 	write(_fd, buff, len);
-	write(_fd, "\r\n", 2);
 }
 
 void Client::respondHeader(const std::string &method, int id, int seqno, int error,
@@ -482,6 +480,9 @@ void Client::respondHeader(const std::string &method, int id, int seqno, int err
 	std::stringstream str;
 	str << method << " " << id << " " << seqno << " " << error << " " << content_length
 		<< "\r\n\r\n";
+	if (content_length == 0) {
+		str << "\r\n";
+	}
 
 	std::string s = str.str();
 	if (verbose) {
