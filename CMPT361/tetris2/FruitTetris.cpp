@@ -35,7 +35,8 @@ vec4 tilecolour[4];
 int colourRot = 0;
 int rot = 0;
 int tiletype = 0;
-int angle = 0;
+int anglex = 0;
+int angley = 0;
 
 bool gameDone = false;
 
@@ -72,6 +73,7 @@ std::uniform_int_distribution<int> rot_distribution(0, 3);
 bool board[10][20];
 
 const int BOARD_SIZE = 10*20*2*3;
+const int LINES_SIZE = (11 * 2 + 21 * 2) * 2 + 11*21*2;
 
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
@@ -215,8 +217,8 @@ void initGrid()
 {
 	// ***Generate geometry data
 	// Array containing the 64 points of the 32 total lines to be later put in the VBO
-	vec4 gridpoints[590];
-	vec4 gridcolours[590]; // One colour per vertex
+	vec4 gridpoints[LINES_SIZE];
+	vec4 gridcolours[LINES_SIZE]; // One colour per vertex
 	// Vertical lines
 	for (int i = 0; i < 11; i++){
 		gridpoints[2*i] = vec4((33.0 + (33.0 * i)), 33.0, 0, 1);
@@ -245,7 +247,7 @@ void initGrid()
 		}
 	}
 	// Make all grid lines white
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < LINES_SIZE; i++)
 		gridcolours[i] = white;
 
 
@@ -260,7 +262,7 @@ void initGrid()
 	// Bind the first grid VBO (vertex positions)
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]);
 	// Put the grid points in the VBO
-	glBufferData(GL_ARRAY_BUFFER, 256*sizeof(vec4), gridpoints, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, LINES_SIZE*sizeof(vec4), gridpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition); // Enable the attribute
 
@@ -268,7 +270,7 @@ void initGrid()
 	// Bind the second grid VBO (vertex colours)
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]);
 	// Put the grid colours in the VBO
-	glBufferData(GL_ARRAY_BUFFER, 256*sizeof(vec4), gridcolours, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, LINES_SIZE*sizeof(vec4), gridcolours, GL_STATIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
@@ -536,7 +538,7 @@ void display() {
 	// vertices on screen
 	glUniform1i(locxsize, xsize);
 	glUniform1i(locysize, ysize);
-	mat4 model_view = RotateY(angle);
+	mat4 model_view = RotateY(anglex) * RotateX(angley);
 	glUniformMatrix4fv( ModelView, 1, GL_TRUE, model_view );
 
 	// Bind the VAO representing the grid cells (to be drawn first)
@@ -552,7 +554,7 @@ void display() {
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glBindVertexArray(vaoIDs[0]);
 	// Draw the grid lines (21+11 = 32 lines)
-	glDrawArrays(GL_LINES, 0, 256);
+	glDrawArrays(GL_LINES, 0, LINES_SIZE);
 
 
 	glutSwapBuffers();
@@ -623,8 +625,17 @@ void keyboard(unsigned char key, int x, int y) {
 		case 'q':
 			exit (EXIT_SUCCESS);
 			break;
-		case 'e':
-			angle += 5;
+		case 'd':
+			anglex += 5;
+			break;
+		case 'a':
+			anglex -= 5;
+			break;
+		case 'w':
+			angley -= 5;
+			break;
+		case 's':
+			angley += 5;
 			break;
 		case 'r': // 'r' key restarts the game
 			restart();
