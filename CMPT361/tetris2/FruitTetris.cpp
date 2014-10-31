@@ -19,6 +19,7 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include <iostream>
 #include <random>
 #include <set>
+#include <cstring>
 
 using namespace std;
 
@@ -57,7 +58,7 @@ std::uniform_int_distribution<int> type_distribution(0, 6);
 
 // colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
-vec4 black  = vec4(0.0, 0.0, 0.0, 1.0);
+vec4 black  = vec4(0.0, 0.0, 0.0, 0.0);
 
 vec4 colours[] = {
 	vec4(1.0, 0.5, 0.0, 1.0), // orange
@@ -72,7 +73,8 @@ std::uniform_int_distribution<int> rot_distribution(0, 3);
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20];
 
-const int BOARD_SIZE = 10*20*2*3;
+const int TILE_VERTS = 2 * 3 * 2;
+const int BOARD_SIZE = 10*20*TILE_VERTS;
 const int LINES_SIZE = (11 * 2 + 21 * 2) * 2 + 11*21*2;
 
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
@@ -102,7 +104,7 @@ bool getOccupied(int x, int y) {
 }
 
 vec4 getColour(int x, int y) {
-	return boardcolours[(y * 10 + x) * 6];
+	return boardcolours[(y * 10 + x) * TILE_VERTS];
 }
 
 //------------------------------------------------------------------------------
@@ -120,6 +122,23 @@ bool updateRot() {
 	return !checkCollide();
 }
 
+void makeTileVerts(vec4 *loc, int x, int y) {
+	vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
+	vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
+	vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
+	vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
+	vec4 p5 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.33, 1);
+	vec4 p6 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.33, 1);
+	vec4 p7 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.33, 1);
+	vec4 p8 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.33, 1);
+
+	vec4 newpoints[] = {
+		p1, p2, p3, p2, p3, p4,
+		p5, p6, p7, p6, p7, p8
+	};
+	memcpy(loc, newpoints, sizeof(newpoints));
+}
+
 // When the current tile is moved or rotated (or created), update the VBO
 // containing its vertex position data
 void updateTile() {
@@ -134,16 +153,11 @@ void updateTile() {
 
 		// Create the 4 corners of the square - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
-		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
-		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
-		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
-
-		// Two points are used by two triangles each
-		vec4 newpoints[6] = {p1, p2, p3, p2, p3, p4};
+		vec4 newpoints[TILE_VERTS];
+		makeTileVerts(newpoints, x, y);
 
 		// Put new data in the VBO
-		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4),
+		glBufferSubData(GL_ARRAY_BUFFER, i*TILE_VERTS*sizeof(vec4), TILE_VERTS*sizeof(vec4),
 						newpoints);
 	}
 
@@ -190,7 +204,7 @@ void newtile() {
 
 	std::set<int> selected_colours;
 	// Update the color VBO of current tile
-	vec4 newcolours[24];
+	vec4 newcolours[TILE_VERTS * 4];
 	for (int i = 0; i < 4; ++i) {
 		int selection = colour_distribution(generator);
 		while (selected_colours.find(selection) != selected_colours.end()) {
@@ -199,8 +213,8 @@ void newtile() {
 		selected_colours.insert(selection);
 		tilecolour[i] = colours[selection];
 	}
-	for (int i = 0; i < 24; i++) {
-		newcolours[i] = tilecolour[i/6];
+	for (int i = 0; i < TILE_VERTS * 4; i++) {
+		newcolours[i] = tilecolour[i/TILE_VERTS];
 	}
 	// Bind the VBO containing current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
@@ -287,18 +301,7 @@ void initBoard()
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++) {
 		for (int j = 0; j < 10; j++) {
-			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 0, 1);
-			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 0, 1);
-			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 0, 1);
-			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 0, 1);
-
-			// Two points are reused
-			boardpoints[6*(10*i + j)    ] = p1;
-			boardpoints[6*(10*i + j) + 1] = p2;
-			boardpoints[6*(10*i + j) + 2] = p3;
-			boardpoints[6*(10*i + j) + 3] = p2;
-			boardpoints[6*(10*i + j) + 4] = p3;
-			boardpoints[6*(10*i + j) + 5] = p4;
+			makeTileVerts(&boardpoints[TILE_VERTS*(10*i + j)], j, i);
 		}
 	}
 
@@ -333,13 +336,13 @@ void initCurrentTile() {
 
 	// Current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*4*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*4*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -383,8 +386,8 @@ void init() {
 
 void setSpace(int x, int y, bool occupied, const vec4 &colour) {
 	board[x][y] = occupied;
-	for (int j = 0; j < 6; ++j) {
-		int pos = (y * 10 + x) * 6 + j;
+	for (int j = 0; j < TILE_VERTS; ++j) {
+		int pos = (y * 10 + x) * TILE_VERTS + j;
 		boardcolours[pos] = colour;
 	}
 }
@@ -549,7 +552,7 @@ void display() {
 	// Bind the VAO representing the current tile (to be drawn on top of the board)
 	glBindVertexArray(vaoIDs[2]);
 	// Draw the current tile (8 triangles)
-	glDrawArrays(GL_TRIANGLES, 0, 24);
+	glDrawArrays(GL_TRIANGLES, 0, 48);
 
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glBindVertexArray(vaoIDs[0]);
