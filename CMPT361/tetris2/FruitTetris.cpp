@@ -73,7 +73,7 @@ std::uniform_int_distribution<int> rot_distribution(0, 3);
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20];
 
-const int TILE_VERTS = 2 * 3 * 2;
+const int TILE_VERTS = 2 * 3 * 6;
 const int BOARD_SIZE = 10*20*TILE_VERTS;
 const int LINES_SIZE = (11 * 2 + 21 * 2) * 2 + 11*21*2;
 
@@ -123,18 +123,34 @@ bool updateRot() {
 }
 
 void makeTileVerts(vec4 *loc, int x, int y) {
-	vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
-	vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
-	vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0, 1);
-	vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0, 1);
-	vec4 p5 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.33, 1);
-	vec4 p6 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.33, 1);
-	vec4 p7 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.33, 1);
-	vec4 p8 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.33, 1);
+	vec4 p0 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.03, 1);
+	vec4 p1 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.03, 1);
+	vec4 p2 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.03, 1);
+	vec4 p3 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.03, 1);
+	vec4 p4 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.3, 1);
+	vec4 p5 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.3, 1);
+	vec4 p6 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.3, 1);
+	vec4 p7 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.3, 1);
 
 	vec4 newpoints[] = {
-		p1, p2, p3, p2, p3, p4,
-		p5, p6, p7, p6, p7, p8
+		p0, p1, p2,
+		p2, p3, p0,
+
+		p3, p2, p6,
+		p6, p7, p3,
+
+		p7, p6, p5,
+		p5, p4, p7,
+
+		p4, p5, p1,
+		p1, p0, p4,
+
+		p4, p0, p3,
+		p3, p7, p4,
+
+		p1, p5, p6,
+		p6, p2, p1,
+
 	};
 	memcpy(loc, newpoints, sizeof(newpoints));
 }
@@ -327,6 +343,9 @@ void initBoard()
 	// Grid cell vertex colours
 	updateBoard();
 	glEnableVertexAttribArray(vColor);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
 }
 
 // No geometry for current tile initially
@@ -534,7 +553,7 @@ void updateGame() {
 void display() {
 
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 	// x and y sizes are passed to the shader program to maintain shape of the
@@ -552,7 +571,7 @@ void display() {
 	// Bind the VAO representing the current tile (to be drawn on top of the board)
 	glBindVertexArray(vaoIDs[2]);
 	// Draw the current tile (8 triangles)
-	glDrawArrays(GL_TRIANGLES, 0, 48);
+	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS*4);
 
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glBindVertexArray(vaoIDs[0]);
@@ -659,7 +678,7 @@ void idle(void) {
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(xsize, ysize);
 
 	// Center the game window (well, on a 1920x1080 display)
