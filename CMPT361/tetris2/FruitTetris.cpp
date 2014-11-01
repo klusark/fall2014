@@ -93,6 +93,7 @@ GLuint ModelView;
 
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
+GLuint gridVAO, boardVAO, tileVAO;
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 const static int movetime = 200;
@@ -179,7 +180,7 @@ void updateTile() {
 }
 
 void updateBoard() {
-	glBindVertexArray(vaoIDs[1]);
+	glBindVertexArray(boardVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours,
 					GL_DYNAMIC_DRAW);
@@ -281,7 +282,7 @@ void initGrid()
 	// *** set up buffer objects
 	// Set up first VAO (representing grid lines)
 	// Bind the first VAO
-	glBindVertexArray(vaoIDs[0]);
+	glBindVertexArray(gridVAO);
 	// Create two Vertex Buffer Objects for this VAO (positions, colours)
 	glGenBuffers(2, vboIDs);
 
@@ -327,7 +328,7 @@ void initBoard()
 
 
 	// *** set up buffer objects
-	glBindVertexArray(vaoIDs[1]);
+	glBindVertexArray(boardVAO);
 	glGenBuffers(2, &vboIDs[2]);
 
 	// Grid cell vertex positions
@@ -347,7 +348,7 @@ void initBoard()
 
 // No geometry for current tile initially
 void initCurrentTile() {
-	glBindVertexArray(vaoIDs[2]);
+	glBindVertexArray(tileVAO);
 	glGenBuffers(2, &vboIDs[4]);
 
 	// Current tile vertex positions
@@ -385,7 +386,10 @@ void init() {
 
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the
 	// names in array vaoIDs
-	glGenVertexArrays(3, &vaoIDs[0]);
+	glGenVertexArrays(3, vaoIDs);
+	tileVAO = vaoIDs[0];
+	gridVAO = vaoIDs[1];
+	boardVAO = vaoIDs[2];
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize");
@@ -560,17 +564,17 @@ void display() {
 	glUniformMatrix4fv( ModelView, 1, GL_TRUE, model_view );
 
 	// Bind the VAO representing the grid cells (to be drawn first)
-	glBindVertexArray(vaoIDs[1]);
+	glBindVertexArray(boardVAO);
 	// Draw the board
 	glDrawArrays(GL_TRIANGLES, 0, BOARD_SIZE);
 
 	// Bind the VAO representing the current tile (to be drawn on top of the board)
-	glBindVertexArray(vaoIDs[2]);
+	glBindVertexArray(tileVAO);
 	// Draw the current tile (8 triangles)
 	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS*4);
 
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
-	glBindVertexArray(vaoIDs[0]);
+	glBindVertexArray(gridVAO);
 	// Draw the grid lines (21+11 = 32 lines)
 	glDrawArrays(GL_LINES, 0, LINES_SIZE);
 
