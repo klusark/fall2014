@@ -74,6 +74,8 @@ std::uniform_int_distribution<int> rot_distribution(0, 3);
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20];
 
+bool attached = true;
+
 const int TILE_VERTS = 2 * 3 * 6;
 const int BOARD_SIZE = 10*20*TILE_VERTS;
 const int LINES_SIZE = (11 * 2 + 21 * 2) * 2 + 11*21*2;
@@ -339,15 +341,12 @@ void initGrid()
 
 void initArm()
 {
-	// ***Generate geometry data
-	// Array containing the 64 points of the 32 total lines to be later put in the VBO
 	vec4 gridpoints[TILE_VERTS];
-	vec4 gridcolours[TILE_VERTS]; // One colour per vertex
+	vec4 gridcolours[TILE_VERTS];
 	makeCube(gridpoints);
 
-	// Make all grid lines white
 	for (int i = 0; i < LINES_SIZE; i++)
-		gridcolours[i] = vec4(1,0,1,1);
+		gridcolours[i] = vec4(0,0,0.5,1);
 
 
 	// *** set up buffer objects
@@ -606,6 +605,11 @@ void addTileToBoard() {
 	updateBoard();
 }
 
+const GLfloat BASE_HEIGHT  = 32;
+const GLfloat BASE_WIDTH   = 40;
+const GLfloat ARM_HEIGHT = (22*33)/2;
+const GLfloat ARM_WIDTH  = 16;
+
 int timeElapsed = 0;
 int timeSinceMove = 0;
 void updateGame() {
@@ -615,10 +619,31 @@ void updateGame() {
 	int newtime = glutGet(GLUT_ELAPSED_TIME);
 	int frametime = newtime - timeElapsed;
 	timeSinceMove += frametime;
-	if (timeSinceMove > movetime) {
+	if (!attached && timeSinceMove > movetime) {
 		tilepos.y -= 1;
 		updateTile();
 		timeSinceMove %= movetime;
+	}
+
+	if (attached) {
+		// calculate the end of the arm
+		mat4 v;
+		v *= ( Translate(0.0, BASE_HEIGHT, 0.0) * RotateZ(a2) );
+		v *= ( Translate(0.0, ARM_HEIGHT, 0.0) * RotateZ(a1) );
+		v *= Translate(0, ARM_HEIGHT, 0);
+
+		vec4 point(1,1,0,1);
+		point = v * point;
+		int x = (point.x - 40)/33;
+		int y = (point.y - 40)/33;
+		vec2 startpos = tilepos;
+		tilepos.x = x;
+		tilepos.y = y;
+		if (checkCollide()) {
+			tilepos = startpos;
+		} else {
+			updateTile();
+		}
 	}
 
 	if (tileLanded()) {
@@ -631,11 +656,6 @@ void updateGame() {
 
 	timeElapsed = newtime;
 }
-
-const GLfloat BASE_HEIGHT  = 32;
-const GLfloat BASE_WIDTH   = 40;
-const GLfloat ARM_HEIGHT = (22*33)/2;
-const GLfloat ARM_WIDTH  = 16;
 
 // Draws the game
 void display() {
