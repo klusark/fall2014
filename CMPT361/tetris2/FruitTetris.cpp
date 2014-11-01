@@ -38,9 +38,10 @@ int rot = 0;
 int tiletype = 0;
 int anglex = 0;
 int angley = 0;
-int a1 = 0, a2 = 0;
+int a1 = -65, a2 = 10;
 int armx = 0, army = 0;
 int grey = 0;
+int tildrop = 9;
 
 bool gameDone = false;
 
@@ -230,6 +231,7 @@ void updateBoard() {
 
 // Called at the start of play and every time a tile is placed
 void newtile() {
+	tildrop = 9;
 	attached = true;
 	rot = rot_distribution(generator);
 	colourRot = 0;
@@ -630,6 +632,13 @@ void updateGame() {
 	}
 
 	if (attached) {
+		if (timeSinceMove > 1000) {
+			tildrop -= 1;
+			timeSinceMove %= 1000;
+		}
+		if (tildrop == 0) {
+			attached = false;
+		}
 		// calculate the end of the arm
 		mat4 v;
 		v *= ( Translate(0.0, BASE_HEIGHT, 0.0) * RotateZ(a2) );
@@ -686,11 +695,14 @@ void display() {
 	glBindVertexArray(gridVAO);
 	glDrawArrays(GL_LINES, 0, LINES_SIZE);
 
+	mat4 v = model_view * Translate(-250, 550, 0);
+	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
+	glutStrokeCharacter(GLUT_STROKE_ROMAN, '0' + tildrop);
 
 	glBindVertexArray(armVAO);
 
 	model_view *= Translate(0, 33, 0);
-	mat4 v = model_view * Translate(0, 0.5 * BASE_HEIGHT, 0) * Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	v = model_view * Translate(0, 0.5 * BASE_HEIGHT, 0) * Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
 	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
 	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
 
@@ -703,6 +715,8 @@ void display() {
 	v = model_view * Translate(0, 0.5 * ARM_HEIGHT, 0) * Scale(ARM_WIDTH, ARM_HEIGHT, ARM_WIDTH);
 	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
 	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
+
+
 
 	glutSwapBuffers();
 }
