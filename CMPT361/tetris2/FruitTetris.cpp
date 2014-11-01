@@ -87,9 +87,7 @@ GLuint vPosition;
 GLuint vColor;
 
 // locations of uniform variables in shader program
-GLuint locxsize;
-GLuint locysize;
-GLuint ModelView;
+GLuint ModelView, Projection;
 
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
@@ -126,14 +124,14 @@ bool updateRot() {
 }
 
 void makeTileVerts(vec4 *loc, int x, int y) {
-	vec4 p0 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.03, 1);
-	vec4 p1 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.03, 1);
-	vec4 p2 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.03, 1);
-	vec4 p3 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.03, 1);
-	vec4 p4 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 0.3, 1);
-	vec4 p5 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 0.3, 1);
-	vec4 p6 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 0.3, 1);
-	vec4 p7 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 0.3, 1);
+	vec4 p0 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), -16, 1);
+	vec4 p1 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), -16, 1);
+	vec4 p2 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), -16, 1);
+	vec4 p3 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), -16, 1);
+	vec4 p4 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 16, 1);
+	vec4 p5 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 16, 1);
+	vec4 p6 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 16, 1);
+	vec4 p7 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 16, 1);
 
 	vec4 newpoints[] = {
 		p0, p1, p2,
@@ -251,29 +249,29 @@ void initGrid()
 	vec4 gridcolours[LINES_SIZE]; // One colour per vertex
 	// Vertical lines
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4((33.0 + (33.0 * i)), 33.0, 0, 1);
-		gridpoints[2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 0, 1);
+		gridpoints[2*i] = vec4((33.0 + (33.0 * i)), 33.0, -17, 1);
+		gridpoints[2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, -17, 1);
 
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), 0, 1);
-		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 0, 1);
+		gridpoints[22 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), -17, 1);
+		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), -17, 1);
 	}
 	for (int i = 0; i < 11; i++){
-		gridpoints[64 + 2*i] = vec4((33.0 + (33.0 * i)), 33.0, 0.33, 1);
-		gridpoints[64 + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 0.33, 1);
+		gridpoints[64 + 2*i] = vec4((33.0 + (33.0 * i)), 33.0, 17, 1);
+		gridpoints[64 + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 17, 1);
 
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[86 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), 0.33, 1);
-		gridpoints[86 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 0.33, 1);
+		gridpoints[86 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), 17, 1);
+		gridpoints[86 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 17, 1);
 	}
 	for (int x = 0; x < 11; ++x) {
 		for (int y = 0; y < 21; ++y) {
-			gridpoints[128 + ((x * 21) + y)*2] = vec4(33.0 + (33.0 * x), (33.0 + (33.0 * y)), 0.33, 1);
-			gridpoints[128 + ((x * 21) + y)*2 + 1] = vec4(33.0 + (33.0 * x), (33.0 + (33.0 * y)), 0., 1);
+			gridpoints[128 + ((x * 21) + y)*2] = vec4(33.0 + (33.0 * x), (33.0 + (33.0 * y)), 17, 1);
+			gridpoints[128 + ((x * 21) + y)*2 + 1] = vec4(33.0 + (33.0 * x), (33.0 + (33.0 * y)), -17, 1);
 		}
 	}
 	// Make all grid lines white
@@ -400,9 +398,8 @@ void init() {
 
 
 	// The location of the uniform variables in the shader program
-	locxsize = glGetUniformLocation(program, "xsize");
-	locysize = glGetUniformLocation(program, "ysize");
-	ModelView = glGetUniformLocation( program, "ModelView" );
+	ModelView = glGetUniformLocation(program, "ModelView");
+	Projection = glGetUniformLocation(program, "Projection");
 
 	// set to default
 	glClearColor(0, 0, 0, 0);
@@ -570,10 +567,8 @@ void display() {
 
 	// x and y sizes are passed to the shader program to maintain shape of the
 	// vertices on screen
-	glUniform1i(locxsize, xsize);
-	glUniform1i(locysize, ysize);
-	mat4 model_view = RotateY(anglex) * RotateX(angley);
-	glUniformMatrix4fv( ModelView, 1, GL_TRUE, model_view );
+	mat4 model_view = Translate(500, 0, 0) * RotateY(anglex) * RotateX(angley) * Translate(-200, 0, 0);
+	glUniformMatrix4fv(ModelView, 1, GL_TRUE, model_view);
 
 	// Bind the VAO representing the grid cells (to be drawn first)
 	glBindVertexArray(boardVAO);
@@ -599,10 +594,27 @@ void display() {
 // Reshape callback will simply change xsize and ysize variables, which are
 // passed to the vertex shader to keep the game the same from stretching if the
 // window is stretched
-void reshape(GLsizei w, GLsizei h) {
-	xsize = w;
-	ysize = h;
-	glViewport(0, 0, w, h);
+void reshape(GLsizei width, GLsizei height) {
+	glViewport( 0, 0, width, height );
+
+	GLfloat  left = 0, right = 700;
+	GLfloat  bottom = 0, top = 700;
+	GLfloat  zNear = -700.0, zFar = 700.0;
+
+	GLfloat aspect = GLfloat(width)/height;
+
+	if ( aspect > 1.0 ) {
+		left *= aspect;
+		right *= aspect;
+	} else {
+		bottom /= aspect;
+		top /= aspect;
+	}
+
+	mat4 projection = Ortho( left, right, bottom, top, zNear, zFar );
+	glUniformMatrix4fv( Projection, 1, GL_TRUE, projection );
+
+	//model_view = mat4( 1.0 );  // An Identity matrix
 }
 
 //------------------------------------------------------------------------------
