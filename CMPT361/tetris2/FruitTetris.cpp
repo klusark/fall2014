@@ -40,6 +40,7 @@ int anglex = 0;
 int angley = 0;
 int a1 = 0, a2 = 0;
 int armx = 0, army = 0;
+int grey = 0;
 
 bool gameDone = false;
 
@@ -91,7 +92,7 @@ GLuint vPosition;
 GLuint vColor;
 
 // locations of uniform variables in shader program
-GLuint ModelView, Projection;
+GLuint ModelView, Projection, Grey;
 
 // VAO and VBO
 GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
@@ -232,7 +233,7 @@ void newtile() {
 	attached = true;
 	rot = rot_distribution(generator);
 	colourRot = 0;
-	tilepos = vec2(5, 20); // Put the tile at the top of the board
+	tilepos = vec2(armx, army); // Put the tile at the top of the board
 	tiletype = type_distribution(generator);
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
@@ -474,6 +475,7 @@ void init() {
 	// The location of the uniform variables in the shader program
 	ModelView = glGetUniformLocation(program, "ModelView");
 	Projection = glGetUniformLocation(program, "Projection");
+	Grey = glGetUniformLocation(program, "grey");
 
 	// set to default
 	glClearColor(0, 0, 0, 0);
@@ -638,22 +640,19 @@ void updateGame() {
 		point = v * point;
 		armx = (point.x - 40)/33;
 		army = (point.y - 40)/33;
-		vec2 startpos = tilepos;
 		tilepos.x = armx;
 		tilepos.y = army;
-		if (checkCollide()) {
-			tilepos = startpos;
-		} else {
-			updateTile();
-		}
-	}
+		grey = (int)checkCollide();
+		updateTile();
+	} else {
 
-	if (tileLanded()) {
-		tilepos.y += 1;
-		addTileToBoard();
-		checkBoard();
-		tilepos.y = 2;
-		newtile();
+		if (tileLanded()) {
+			tilepos.y += 1;
+			addTileToBoard();
+			checkBoard();
+			tilepos.y = 2;
+			newtile();
+		}
 	}
 
 	timeElapsed = newtime;
@@ -676,10 +675,12 @@ void display() {
 	// Draw the board
 	glDrawArrays(GL_TRIANGLES, 0, BOARD_SIZE);
 
+	glUniform1i(Grey, grey);
 	// Bind the VAO representing the current tile (to be drawn on top of the board)
 	glBindVertexArray(tileVAO);
 	// Draw the current tile (8 triangles)
 	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS*4);
+	glUniform1i(Grey, 0);
 
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glBindVertexArray(gridVAO);
@@ -758,7 +759,7 @@ void special(int key, int x, int y) {
 			rot = lastrot;
 			updateRot();
 		}
-	} else if (key == DOWN) {
+	} else if (!attached && key == DOWN) {
 		while (!tileLanded()) {
 			tilepos.y -= 1;
 		}
