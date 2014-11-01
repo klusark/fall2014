@@ -39,6 +39,7 @@ int tiletype = 0;
 int anglex = 0;
 int angley = 0;
 int a1 = 0, a2 = 0;
+int armx = 0, army = 0;
 
 bool gameDone = false;
 
@@ -228,6 +229,7 @@ void updateBoard() {
 
 // Called at the start of play and every time a tile is placed
 void newtile() {
+	attached = true;
 	rot = rot_distribution(generator);
 	colourRot = 0;
 	tilepos = vec2(5, 20); // Put the tile at the top of the board
@@ -634,11 +636,11 @@ void updateGame() {
 
 		vec4 point(1,1,0,1);
 		point = v * point;
-		int x = (point.x - 40)/33;
-		int y = (point.y - 40)/33;
+		armx = (point.x - 40)/33;
+		army = (point.y - 40)/33;
 		vec2 startpos = tilepos;
-		tilepos.x = x;
-		tilepos.y = y;
+		tilepos.x = armx;
+		tilepos.y = army;
 		if (checkCollide()) {
 			tilepos = startpos;
 		} else {
@@ -776,10 +778,13 @@ void special(int key, int x, int y) {
 void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
 		if (!gameDone) {
-			case ' ':
+			case 'p':
 				colourRot = (colourRot + 1) % 4;
 				updateRot();
 				updateTile();
+				break;
+			case ' ':
+				attached = false;
 				break;
 		}
 		case 033: // Both escape key and 'q' cause the game to exit
