@@ -176,11 +176,10 @@ void updateTile() {
 		glBufferSubData(GL_ARRAY_BUFFER, i*TILE_VERTS*sizeof(vec4), TILE_VERTS*sizeof(vec4),
 						newpoints);
 	}
-
-	glBindVertexArray(0);
 }
 
 void updateBoard() {
+	glBindVertexArray(vaoIDs[1]);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours,
 					GL_DYNAMIC_DRAW);
@@ -237,8 +236,6 @@ void newtile() {
 	// Put the colour data in the VBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0);
 }
 
 //------------------------------------------------------------------------------
@@ -396,7 +393,6 @@ void init() {
 	ModelView = glGetUniformLocation( program, "ModelView" );
 
 	// set to default
-	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
 
 
