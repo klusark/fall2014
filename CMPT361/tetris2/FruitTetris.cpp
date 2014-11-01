@@ -38,6 +38,7 @@ int rot = 0;
 int tiletype = 0;
 int anglex = 0;
 int angley = 0;
+int a1 = 0, a2 = 0;
 
 bool gameDone = false;
 
@@ -90,11 +91,12 @@ GLuint vColor;
 GLuint ModelView, Projection;
 
 // VAO and VBO
-GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
-GLuint gridVAO, boardVAO, tileVAO;
+GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
+GLuint gridVAO, boardVAO, tileVAO, armVAO;
 GLuint gridVBOs[2];
 GLuint boardVBOs[2];
 GLuint tileVBOs[2];
+GLuint armVBOs[2];
 
 const static int movetime = 200;
 
@@ -132,6 +134,39 @@ void makeTileVerts(vec4 *loc, int x, int y) {
 	vec4 p5 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 16, 1);
 	vec4 p6 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 16, 1);
 	vec4 p7 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 16, 1);
+
+	vec4 newpoints[] = {
+		p0, p1, p2,
+		p2, p3, p0,
+
+		p3, p2, p6,
+		p6, p7, p3,
+
+		p7, p6, p5,
+		p5, p4, p7,
+
+		p4, p5, p1,
+		p1, p0, p4,
+
+		p4, p0, p3,
+		p3, p7, p4,
+
+		p1, p5, p6,
+		p6, p2, p1,
+
+	};
+	memcpy(loc, newpoints, sizeof(newpoints));
+}
+
+void makeCube(vec4 *loc) {
+	vec4 p0 = vec4(-0.5, -0.5, -0.5, 1);
+	vec4 p1 = vec4( 0.5, -0.5, -0.5, 1);
+	vec4 p2 = vec4( 0.5,  0.5, -0.5, 1);
+	vec4 p3 = vec4(-0.5,  0.5, -0.5, 1);
+	vec4 p4 = vec4(-0.5, -0.5,  0.5, 1);
+	vec4 p5 = vec4( 0.5, -0.5,  0.5, 1);
+	vec4 p6 = vec4( 0.5,  0.5,  0.5, 1);
+	vec4 p7 = vec4(-0.5,  0.5,  0.5, 1);
 
 	vec4 newpoints[] = {
 		p0, p1, p2,
@@ -302,6 +337,42 @@ void initGrid()
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
 
+void initArm()
+{
+	// ***Generate geometry data
+	// Array containing the 64 points of the 32 total lines to be later put in the VBO
+	vec4 gridpoints[TILE_VERTS];
+	vec4 gridcolours[TILE_VERTS]; // One colour per vertex
+	makeCube(gridpoints);
+
+	// Make all grid lines white
+	for (int i = 0; i < LINES_SIZE; i++)
+		gridcolours[i] = vec4(1,0,1,1);
+
+
+	// *** set up buffer objects
+	// Set up first VAO (representing grid lines)
+	// Bind the first VAO
+	glBindVertexArray(armVAO);
+	// Create two Vertex Buffer Objects for this VAO (positions, colours)
+
+	// Grid vertex positions
+	// Bind the first grid VBO (vertex positions)
+	glBindBuffer(GL_ARRAY_BUFFER, armVBOs[0]);
+	// Put the grid points in the VBO
+	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*sizeof(vec4), gridpoints, GL_STATIC_DRAW);
+	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition); // Enable the attribute
+
+	// Grid vertex colours
+	// Bind the second grid VBO (vertex colours)
+	glBindBuffer(GL_ARRAY_BUFFER, armVBOs[1]);
+	// Put the grid colours in the VBO
+	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*sizeof(vec4), gridcolours, GL_STATIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vColor); // Enable the attribute
+}
+
 void clearBoard() {
 	for (int i = 0; i < BOARD_SIZE; i++) {
 		// Let the empty cells on the board be black
@@ -387,14 +458,16 @@ void init() {
 
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the
 	// names in array vaoIDs
-	glGenVertexArrays(3, vaoIDs);
+	glGenVertexArrays(4, vaoIDs);
 	tileVAO = vaoIDs[0];
 	gridVAO = vaoIDs[1];
 	boardVAO = vaoIDs[2];
+	armVAO = vaoIDs[3];
 
 	glGenBuffers(2, tileVBOs);
 	glGenBuffers(2, gridVBOs);
 	glGenBuffers(2, boardVBOs);
+	glGenBuffers(2, armVBOs);
 
 
 	// The location of the uniform variables in the shader program
@@ -408,6 +481,7 @@ void init() {
 	initGrid();
 	initBoard();
 	initCurrentTile();
+	initArm();
 
 	startGame();
 }
@@ -558,6 +632,11 @@ void updateGame() {
 	timeElapsed = newtime;
 }
 
+const GLfloat BASE_HEIGHT  = 32;
+const GLfloat BASE_WIDTH   = 40;
+const GLfloat ARM_HEIGHT = (22*33)/2;
+const GLfloat ARM_WIDTH  = 16;
+
 // Draws the game
 void display() {
 
@@ -582,9 +661,25 @@ void display() {
 
 	// Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glBindVertexArray(gridVAO);
-	// Draw the grid lines (21+11 = 32 lines)
 	glDrawArrays(GL_LINES, 0, LINES_SIZE);
 
+
+	glBindVertexArray(armVAO);
+
+	model_view *= Translate(0, 33, 0);
+	mat4 v = model_view * Translate(0, 0.5 * BASE_HEIGHT, 0) * Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
+	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
+
+	model_view *= ( Translate(0.0, BASE_HEIGHT, 0.0) * RotateZ(a2) );
+	v = model_view * Translate(0, 0.5 * ARM_HEIGHT, 0) * Scale(ARM_WIDTH, ARM_HEIGHT, ARM_WIDTH);
+	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
+	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
+
+	model_view *= ( Translate(0.0, ARM_HEIGHT, 0.0) * RotateZ(a1) );
+	v = model_view * Translate(0, 0.5 * ARM_HEIGHT, 0) * Scale(ARM_WIDTH, ARM_HEIGHT, ARM_WIDTH);
+	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
+	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
 
 	glutSwapBuffers();
 }
@@ -682,6 +777,18 @@ void keyboard(unsigned char key, int x, int y) {
 			break;
 		case 's':
 			angley += 5;
+			break;
+		case 't':
+			a1 += 2;
+			break;
+		case 'g':
+			a1 -= 2;
+			break;
+		case 'f':
+			a2 += 2;
+			break;
+		case 'h':
+			a2 -= 2;
 			break;
 		case 'r': // 'r' key restarts the game
 			restart();
