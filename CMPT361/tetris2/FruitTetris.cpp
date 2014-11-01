@@ -94,7 +94,9 @@ GLuint ModelView;
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 GLuint gridVAO, boardVAO, tileVAO;
-GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+GLuint gridVBOs[2];
+GLuint boardVBOs[2];
+GLuint tileVBOs[2];
 
 const static int movetime = 200;
 
@@ -160,7 +162,7 @@ void makeTileVerts(vec4 *loc, int x, int y) {
 // containing its vertex position data
 void updateTile() {
 	// Bind the VBO containing current tile vertex positions
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
+	glBindBuffer(GL_ARRAY_BUFFER, tileVBOs[0]);
 
 	// For each of the 4 'cells' of the tile,
 	for (int i = 0; i < 4; i++) {
@@ -181,7 +183,7 @@ void updateTile() {
 
 void updateBoard() {
 	glBindVertexArray(boardVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBindBuffer(GL_ARRAY_BUFFER, boardVBOs[1]);
 	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardcolours,
 					GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
@@ -233,7 +235,7 @@ void newtile() {
 		newcolours[i] = tilecolour[i/TILE_VERTS];
 	}
 	// Bind the VBO containing current tile vertex colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBindBuffer(GL_ARRAY_BUFFER, tileVBOs[1]);
 	// Put the colour data in the VBO
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -284,11 +286,10 @@ void initGrid()
 	// Bind the first VAO
 	glBindVertexArray(gridVAO);
 	// Create two Vertex Buffer Objects for this VAO (positions, colours)
-	glGenBuffers(2, vboIDs);
 
 	// Grid vertex positions
 	// Bind the first grid VBO (vertex positions)
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, gridVBOs[0]);
 	// Put the grid points in the VBO
 	glBufferData(GL_ARRAY_BUFFER, LINES_SIZE*sizeof(vec4), gridpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
@@ -296,27 +297,17 @@ void initGrid()
 
 	// Grid vertex colours
 	// Bind the second grid VBO (vertex colours)
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, gridVBOs[1]);
 	// Put the grid colours in the VBO
 	glBufferData(GL_ARRAY_BUFFER, LINES_SIZE*sizeof(vec4), gridcolours, GL_STATIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
 
-
-void initBoard()
-{
-	// *** Generate the geometric data
-	vec4 boardpoints[BOARD_SIZE];
+void clearBoard() {
 	for (int i = 0; i < BOARD_SIZE; i++) {
 		// Let the empty cells on the board be black
 		boardcolours[i] = black;
-	}
-	// Each cell is a square (2 triangles with 6 vertices)
-	for (int i = 0; i < 20; i++) {
-		for (int j = 0; j < 10; j++) {
-			makeTileVerts(&boardpoints[TILE_VERTS*(10*i + j)], j, i);
-		}
 	}
 
 	// Initially no cell is occupied
@@ -325,14 +316,28 @@ void initBoard()
 			board[i][j] = false;
 		}
 	}
+}
 
+void initBoard()
+{
+	// *** Generate the geometric data
+	vec4 boardpoints[BOARD_SIZE];
+
+	// Each cell is a square (2 triangles with 6 vertices)
+	for (int i = 0; i < 20; i++) {
+		for (int j = 0; j < 10; j++) {
+			makeTileVerts(&boardpoints[TILE_VERTS*(10*i + j)], j, i);
+		}
+	}
+
+
+	clearBoard();
 
 	// *** set up buffer objects
 	glBindVertexArray(boardVAO);
-	glGenBuffers(2, &vboIDs[2]);
 
 	// Grid cell vertex positions
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
+	glBindBuffer(GL_ARRAY_BUFFER, boardVBOs[0]);
 	glBufferData(GL_ARRAY_BUFFER, BOARD_SIZE * sizeof(vec4), boardpoints,
 					GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
@@ -349,16 +354,15 @@ void initBoard()
 // No geometry for current tile initially
 void initCurrentTile() {
 	glBindVertexArray(tileVAO);
-	glGenBuffers(2, &vboIDs[4]);
 
 	// Current tile vertex positions
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
+	glBindBuffer(GL_ARRAY_BUFFER, tileVBOs[0]);
 	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*4*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Current tile vertex colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBindBuffer(GL_ARRAY_BUFFER, tileVBOs[1]);
 	glBufferData(GL_ARRAY_BUFFER, TILE_VERTS*4*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
@@ -366,10 +370,9 @@ void initCurrentTile() {
 
 void startGame() {
 	gameDone = false;
-	// Initialize the grid, the board, and the current tile
-	initGrid();
-	initBoard();
-	initCurrentTile();
+
+	clearBoard();
+	updateBoard();
 
 	// Game initialization
 	newtile(); // create new next tile
@@ -391,6 +394,11 @@ void init() {
 	gridVAO = vaoIDs[1];
 	boardVAO = vaoIDs[2];
 
+	glGenBuffers(2, tileVBOs);
+	glGenBuffers(2, gridVBOs);
+	glGenBuffers(2, boardVBOs);
+
+
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize");
 	locysize = glGetUniformLocation(program, "ysize");
@@ -399,6 +407,10 @@ void init() {
 	// set to default
 	glClearColor(0, 0, 0, 0);
 
+	// Initialize the grid, the board, and the current tile
+	initGrid();
+	initBoard();
+	initCurrentTile();
 
 	startGame();
 }
