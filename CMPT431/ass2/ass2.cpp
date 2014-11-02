@@ -206,6 +206,7 @@ public:
 	sockaddr_in _addr;
 private:
 	std::vector<char> _buffer;
+	std::string _data;
 	bool _connected;
 };
 
@@ -213,11 +214,12 @@ private:
 
 Client::Client() {
 	_connected = true;
-	_fd = 0;
+	_fd = -1;
 }
 
 Client::~Client() {
-	if (_fd != 0) {
+	if (_fd != -1) {
+		shutdown(_fd, SHUT_RDWR);
 		close(_fd);
 	}
 }
@@ -297,6 +299,11 @@ void Client::parseMessage(const char *data) {
 	if (verbose) {
 		std::cout << "Get: " << data << std::endl;
 	}
+
+	if (length == 0) {
+		_buffer.erase(_buffer.begin(), _buffer.begin() + 2);
+	}
+
 	// check data
 	if (method == "READ") {
 		if (length <= 0 || length > PATH_MAX) {
@@ -307,8 +314,7 @@ void Client::parseMessage(const char *data) {
 		if (bufferData(length) < 0) {
 			return;
 		}
-		std::string filename(_buffer.data(), length);
-		File *f = File::getFile(filename, false);
+		File *f = File::getFile(_data, false);
 		if (f == nullptr || f->_created == false) {
 			if (f) {
 				f->_mutex.unlock();
@@ -327,12 +333,11 @@ void Client::parseMessage(const char *data) {
 		if (bufferData(length) < 0) {
 			return;
 		}
-		std::string filename(_buffer.data(), length);
-		if (filename.size() == 0 || seqno != 0) {
+		if (_data.size() == 0 || seqno != 0) {
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			Transaction *t = new Transaction(filename);
-			File *f = File::getFile(filename, true);
+			Transaction *t = new Transaction(_data);
+			File *f = File::getFile(_data, true);
 			t->_file = f;
 			f->_mutex.unlock();
 			_transaction_mutex.lock();
@@ -348,13 +353,12 @@ void Client::parseMessage(const char *data) {
 		if (bufferData(length) < 0) {
 			return;
 		}
-		std::string data(_buffer.data(), length);
-		if (data.size() == 0) {
+		if (_data.size() == 0) {
 			t->_mutex.unlock();
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
 			if (t->hasWrite(seqno)) {
-				t->writeData(seqno, data);
+				t->writeData(seqno, _data);
 				t->_mutex.unlock();
 				respond("ACK", id, seqno, 0);
 			} else {
@@ -450,6 +454,8 @@ int Client::bufferData(int length) {
 		left -= len;
 		_buffer.insert(_buffer.end(), buff, buff + len);
 	}
+	_data = std::string(_buffer.data(), length);
+	_buffer.erase(_buffer.begin(), _buffer.begin() + length);
 	return 0;
 }
 
@@ -517,6 +523,7 @@ void cleanup() {
 		delete f.second;
 	}
 	close(bindfd);
+	sqlite3_exec(_db, "END TRANSACTION;", NULL, NULL, NULL);
 	sqlite3_finalize(_transaction_stmt);
 	sqlite3_finalize(_update_stmt);
 	sqlite3_finalize(_write_stmt);
@@ -648,6 +655,8 @@ int main(int argc, char *argv[]) {
 	}
 	sqlite3_finalize(stmt);
 
+	sqlite3_exec(_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
 	addrinfo hints;
 	addrinfo *addr = nullptr;
 
@@ -674,9 +683,9 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < 32; ++i) {
 		_workers.push_back(std::thread(workThread, i));
 	}
-
+	int connections = 0;
 	while (1) {
-		int ret = listen(bindfd, 10);
+		int ret = listen(bindfd, 100);
 		if (ret < 0) {
 			std::cerr << "Listen error: " << ret << std::endl;
 			return 1;
@@ -693,6 +702,8 @@ int main(int argc, char *argv[]) {
 			workQueue.push(fd);
 			workCondition.notify_one();
 		}
+		++connections;
+		std::cout << connections << std::endl;
 	}
 	cleanup();
 }

@@ -35,30 +35,18 @@ void checkResponse(std::string r, std::string e) {
 		std::cerr << "Error line: " << curline << " " << r << " != " << e << std::endl;
 	}
 }
+struct hostent *server;
+sockaddr_in serv_addr;
 
-void connectA(int &sockfd, const char *host, int portno) {
-    struct hostent *server;
-    sockaddr_in serv_addr;
+void connectA(int &sockfd) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
 		std::cerr << "socket error" << std::endl;
 		exit(0);
 	}
-    server = gethostbyname(host);
-    if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    }
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr,
-         (char *)&serv_addr.sin_addr.s_addr,
-         server->h_length);
-    serv_addr.sin_port = htons(portno);
-
 	int ret = connect(sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr));
 	if (ret < 0) {
-        fprintf(stderr,"ERROR, no such connection: %d\n", ret);
+        fprintf(stderr,"ERROR, no such connection: %s\n", strerror(errno));
 		exit(0);
 	}
 }
@@ -96,13 +84,28 @@ int main(int argc, char *argv[]) {
     portno = atoi(argv[2]);
 	int i = 0;
 
+
+    server = gethostbyname(argv[1]);
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
+    }
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr,
+         (char *)&serv_addr.sin_addr.s_addr,
+         server->h_length);
+    serv_addr.sin_port = htons(portno);
+
+
+
+	connectA(sockfd);
 	std::string line;
 	while (std::getline(std::cin, line)) {
 		if (line.length() == 0 || line[0] == '#') {
 			++curline;
 			continue;
 		}
-		connectA(sockfd, argv[1], portno);
 		std::stringstream strr(line);
 		std::string method, t, s, message, exmethod, ext, exs, exe, exmessage;
 		strr >> method >> t >> s >> message >> exmethod >> ext >> exs >> exe >> exmessage;
@@ -114,7 +117,10 @@ int main(int argc, char *argv[]) {
 		checkVar(message);
 		std::stringstream str;
 		str << method << " " << t << " " << s << " " << message.length()
-			<< "\r\n\r\n" << message << "\r\n";
+			<< "\r\n\r\n" << message;
+		if (message.length() == 0) {
+			str << "\r\n";
+		}
 		std::string out = str.str();
 		if (verbose) {
 			std::cout << "Sending: " << out << std::endl;
@@ -138,9 +144,8 @@ int main(int argc, char *argv[]) {
 		checkResponse(rs, exs);
 		checkResponse(re, exe);
 		checkResponse(rmessage, exmessage);
-		close(sockfd);
 		++i;
 		++curline;
+		std::cout << i << std::endl;
 	}
-	//std::cout << i << std::endl;
 }
