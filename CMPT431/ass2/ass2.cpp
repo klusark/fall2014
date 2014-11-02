@@ -240,6 +240,9 @@ void Client::readThread() {
 			}
 			break;
 		}
+		if (_endThreads) {
+			disconnect();
+		}
 		_buffer.insert(_buffer.end(), buff, buff + len);
 		int size = _buffer.size();
 		for (int i = 0; i < size; ++i) {
