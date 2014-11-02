@@ -146,6 +146,5 @@ int main(int argc, char *argv[]) {
 		checkResponse(rmessage, exmessage);
 		++i;
 		++curline;
-		std::cout << i << std::endl;
 	}
 }

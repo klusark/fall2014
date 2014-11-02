@@ -29,6 +29,105 @@ bool _endThreads = false;
 sqlite3 *_db;
 sqlite3_stmt *_transaction_stmt, *_update_stmt, *_write_stmt, *_delete_stmt;
 
+enum SQLType {
+	SQLInsert,
+	SQLUpdate,
+	SQLWrite,
+	SQLDelete,
+};
+
+
+class SQLTransactionData {
+public:
+	SQLTransactionData(SQLType t, int id, int other, const std::string &value);
+	std::string _value;
+	int _id;
+	int _other;
+	SQLType _t;
+	void commit();
+};
+
+
+SQLTransactionData::SQLTransactionData(SQLType t, int id, int other, const std::string &value) {
+	_t = t;
+	_id = id;
+	_other = other;
+	_value = value;
+}
+
+void SQLTransactionData::commit() {
+	if (_t == SQLInsert) {
+		sqlite3_bind_int(_transaction_stmt, 1, _id);
+		sqlite3_bind_text(_transaction_stmt, 2, _value.c_str(),
+							_value.length(), SQLITE_STATIC);
+		sqlite3_bind_int(_transaction_stmt, 3, _other);
+		sqlite3_step(_transaction_stmt);
+		sqlite3_reset(_transaction_stmt);
+	} else if (_t == SQLUpdate) {
+		sqlite3_bind_int(_update_stmt, 1, _other);
+		sqlite3_bind_int(_update_stmt, 2, _id);
+		sqlite3_step(_update_stmt);
+		sqlite3_reset(_update_stmt);
+	} else if (_t == SQLWrite) {
+		sqlite3_bind_int(_write_stmt, 1, _id);
+		sqlite3_bind_int(_write_stmt, 2, _other);
+		sqlite3_bind_text(_write_stmt, 3, _value.c_str(), _value.length(),
+							SQLITE_STATIC);
+		sqlite3_step(_write_stmt);
+		sqlite3_reset(_write_stmt);
+	} else if (_t == SQLDelete) {
+		sqlite3_bind_int(_delete_stmt, 1, _id);
+		sqlite3_step(_delete_stmt);
+		sqlite3_reset(_delete_stmt);
+	}
+}
+
+std::queue<SQLTransactionData> _sqlQueue;
+std::mutex _sqlMutex;
+std::condition_variable _sqlCondition;
+bool _sqlEnd = false;
+
+void SQLTransaction(SQLType t, int id, int other, const std::string &value = "") {
+	SQLTransactionData d(t, id, other, value);
+	_sqlMutex.lock();
+	_sqlQueue.push(d);
+	_sqlCondition.notify_one();
+	_sqlMutex.unlock();
+}
+
+void SQLThread() {
+	while (!_sqlEnd) {
+		std::unique_lock<std::mutex> lock(_sqlMutex);
+		while (_sqlQueue.size() == 0) {
+			_sqlCondition.wait(lock);
+			if (_sqlEnd && _sqlQueue.size() == 0) {
+				return;
+			}
+		}
+		bool begun = false;
+		int i = 0;
+		while (_sqlQueue.size() != 0) {
+			SQLTransactionData t = _sqlQueue.front();
+			_sqlQueue.pop();
+			lock.unlock();
+			if (begun == false) {
+				sqlite3_exec(_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+				begun = true;
+			}
+			t.commit();
+			++i;
+			lock.lock();
+		}
+		lock.unlock();
+		sqlite3_exec(_db, "END TRANSACTION;", NULL, NULL, NULL);
+	}
+	sqlite3_finalize(_transaction_stmt);
+	sqlite3_finalize(_update_stmt);
+	sqlite3_finalize(_write_stmt);
+	sqlite3_finalize(_delete_stmt);
+	sqlite3_close(_db);
+}
+
 class File {
 public:
 	File(std::string filename) : _filename(filename), _created(false) {
@@ -138,27 +237,16 @@ Transaction::Transaction(std::string filename, bool create) : _filename(filename
 		_usedIds.insert(id);
 		_usedIds_mutex.unlock();
 		_id = id;
-		sqlite3_bind_int(_transaction_stmt, 1, _id);
-		sqlite3_bind_text(_transaction_stmt, 2, filename.c_str(),
-							filename.length(), SQLITE_STATIC);
-		sqlite3_bind_int(_transaction_stmt, 3, _state);
-		sqlite3_step(_transaction_stmt);
-		sqlite3_reset(_transaction_stmt);
+		SQLTransaction(SQLInsert, _id, _state, filename);
 	}
 }
 void Transaction::setState(TransactionState s) {
 	_state = s;
-
-	sqlite3_bind_int(_update_stmt, 1, _state);
-	sqlite3_bind_int(_update_stmt, 2, _id);
-	sqlite3_step(_update_stmt);
-	sqlite3_reset(_update_stmt);
+	SQLTransaction(SQLUpdate, _id, _state);
 
 	if (s == Aborted) {
 		_writes.clear();
-		sqlite3_bind_int(_delete_stmt, 1, _id);
-		sqlite3_step(_delete_stmt);
-		sqlite3_reset(_delete_stmt);
+		SQLTransaction(SQLDelete, _id, _state);
 	}
 }
 
@@ -169,20 +257,13 @@ void Transaction::write() {
 		_file->write(it->second);
 	}
 
-	sqlite3_bind_int(_delete_stmt, 1, _id);
-	sqlite3_step(_delete_stmt);
-	sqlite3_reset(_delete_stmt);
+	SQLTransaction(SQLDelete, _id, 0);
 }
 
 void Transaction::writeData(int seqno, const std::string &data) {
 	_writes[seqno] = data;
 
-	sqlite3_bind_int(_write_stmt, 1, _id);
-	sqlite3_bind_int(_write_stmt, 2, seqno);
-	sqlite3_bind_text(_write_stmt, 3, data.c_str(), data.length(),
-						SQLITE_STATIC);
-	sqlite3_step(_write_stmt);
-	sqlite3_reset(_write_stmt);
+	SQLTransaction(SQLWrite, _id, seqno, data);
 }
 
 bool Transaction::hasWrite(int seqno) {
@@ -501,6 +582,7 @@ void Client::respondHeader(const std::string &method, int id, int seqno, int err
 }
 
 std::vector<std::thread> _workers;
+std::thread _sqlThread;
 
 std::mutex workMutex, clientsMutex;
 std::condition_variable workCondition;
@@ -519,6 +601,12 @@ void cleanup() {
 	for (auto &worker : _workers) {
 		worker.join();
 	}
+	{
+		std::lock_guard<std::mutex> lock(_sqlMutex);
+		_sqlEnd = true;
+		_sqlCondition.notify_all();
+	}
+	_sqlThread.join();
 	for (auto t : _transactions) {
 		delete t.second;
 	}
@@ -526,12 +614,6 @@ void cleanup() {
 		delete f.second;
 	}
 	close(bindfd);
-	sqlite3_exec(_db, "END TRANSACTION;", NULL, NULL, NULL);
-	sqlite3_finalize(_transaction_stmt);
-	sqlite3_finalize(_update_stmt);
-	sqlite3_finalize(_write_stmt);
-	sqlite3_finalize(_delete_stmt);
-	sqlite3_close(_db);
 }
 
 void my_handler(int param) {
@@ -658,8 +740,6 @@ int main(int argc, char *argv[]) {
 	}
 	sqlite3_finalize(stmt);
 
-	sqlite3_exec(_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
-
 	addrinfo hints;
 	addrinfo *addr = nullptr;
 
@@ -686,7 +766,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < 32; ++i) {
 		_workers.push_back(std::thread(workThread, i));
 	}
-	int connections = 0;
+	_sqlThread = std::thread(SQLThread);
 	while (1) {
 		int ret = listen(bindfd, 100);
 		if (ret < 0) {
@@ -705,8 +785,6 @@ int main(int argc, char *argv[]) {
 			workQueue.push(fd);
 			workCondition.notify_one();
 		}
-		++connections;
-		std::cout << connections << std::endl;
 	}
 	cleanup();
 }
