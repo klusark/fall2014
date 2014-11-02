@@ -312,11 +312,16 @@ void Client::readThread() {
 	tv.tv_sec = 1;
 
 	setsockopt(_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	int counter = 0;
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
 		if (len <= 0) {
 			if (!_endThreads && _connected && errno == EAGAIN) {
+				++counter;
+				if (counter > 120) {
+					break;
+				}
 				continue;
 			}
 			break;
@@ -324,6 +329,7 @@ void Client::readThread() {
 		if (_endThreads) {
 			disconnect();
 		}
+		counter = 0;
 		_buffer.insert(_buffer.end(), buff, buff + len);
 		int size = _buffer.size();
 		for (int i = 0; i < size; ++i) {
@@ -444,7 +450,6 @@ void Client::parseMessage(const char *data) {
 			if (t->hasWrite(seqno)) {
 				t->writeData(seqno, _data);
 				t->_mutex.unlock();
-				respond("ACK", id, seqno, 0);
 			} else {
 				t->_mutex.unlock();
 				respond("ERROR", id, seqno, 202, "Invalid operation.");
