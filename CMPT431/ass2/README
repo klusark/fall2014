@@ -1,0 +1,9 @@
+Everything should work as described in the assignment.
+
+To build
+
+make
+
+To run
+
+./ass2 -dir wherever
