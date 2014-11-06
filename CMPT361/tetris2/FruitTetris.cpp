@@ -350,7 +350,7 @@ void initArm()
 	vec4 gridcolours[TILE_VERTS];
 	makeCube(gridpoints);
 
-	for (int i = 0; i < LINES_SIZE; i++)
+	for (int i = 0; i < TILE_VERTS; i++)
 		gridcolours[i] = vec4(0,0,0.5,1);
 
 
