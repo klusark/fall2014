@@ -758,6 +758,15 @@ const static int DOWN = 103;
 
 // Handle arrow key keypresses
 void special(int key, int x, int y) {
+	if (glutGetModifiers() == GLUT_ACTIVE_CTRL) {
+		if (key == LEFT) {
+			anglex -= 5;
+		} else if (key == RIGHT) {
+			anglex += 5;
+		}
+		return;
+	}
+
 	if (gameDone) {
 		return;
 	}
@@ -780,6 +789,7 @@ void special(int key, int x, int y) {
 		tilepos.y += 1;
 	}
 
+
 	if (checkCollide()) {
 		tilepos = startpos;
 	} else {
@@ -793,13 +803,14 @@ void special(int key, int x, int y) {
 void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
 		if (!gameDone) {
-			case 'p':
-				colourRot = (colourRot + 1) % 4;
-				updateRot();
-				updateTile();
-				break;
 			case ' ':
-				attached = false;
+				if (glutGetModifiers() == GLUT_ACTIVE_CTRL) {
+					colourRot = (colourRot + 1) % 4;
+					updateRot();
+					updateTile();
+				} else {
+					attached = false;
+				}
 				break;
 		}
 		case 033: // Both escape key and 'q' cause the game to exit
@@ -807,28 +818,16 @@ void keyboard(unsigned char key, int x, int y) {
 			exit (EXIT_SUCCESS);
 			break;
 		case 'd':
-			anglex += 5;
+			a1 -= 5;
 			break;
 		case 'a':
-			anglex -= 5;
+			a1 += 5;
 			break;
 		case 'w':
-			angley -= 5;
+			a2 += 5;
 			break;
 		case 's':
-			angley += 5;
-			break;
-		case 't':
-			a1 += 2;
-			break;
-		case 'g':
-			a1 -= 2;
-			break;
-		case 'f':
-			a2 += 2;
-			break;
-		case 'h':
-			a2 -= 2;
+			a2 -= 5;
 			break;
 		case 'r': // 'r' key restarts the game
 			restart();
