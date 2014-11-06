@@ -676,7 +676,7 @@ void display() {
 
 	// x and y sizes are passed to the shader program to maintain shape of the
 	// vertices on screen
-	mat4 model_view = Translate(500, 0, 0) * RotateY(anglex) * RotateX(angley) * Translate(-200, 0, 0);
+	mat4 model_view = Translate(233, 0, 0) * RotateY(anglex) * RotateX(angley) * Translate(-200, 0, 0);
 	glUniformMatrix4fv(ModelView, 1, GL_TRUE, model_view);
 
 	// Bind the VAO representing the grid cells (to be drawn first)
@@ -695,14 +695,13 @@ void display() {
 	glBindVertexArray(gridVAO);
 	glDrawArrays(GL_LINES, 0, LINES_SIZE);
 
-	mat4 v = model_view * Translate(-250, 550, 0);
-	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
-	glutStrokeCharacter(GLUT_STROKE_ROMAN, '0' + tildrop);
+	glRasterPos3f(-0.9, 0.9, 0);
+	glutBitmapCharacter(GLUT_BITMAP_8_BY_13, '0' + tildrop);
 
 	glBindVertexArray(armVAO);
 
 	model_view *= Translate(0, 33, 0);
-	v = model_view * Translate(0, 0.5 * BASE_HEIGHT, 0) * Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	mat4 v = model_view * Translate(0, 0.5 * BASE_HEIGHT, 0) * Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
 	glUniformMatrix4fv( ModelView, 1, GL_TRUE, v );
 	glDrawArrays(GL_TRIANGLES, 0, TILE_VERTS);
 
@@ -729,9 +728,9 @@ void display() {
 void reshape(GLsizei width, GLsizei height) {
 	glViewport( 0, 0, width, height );
 
-	GLfloat  left = 0, right = 700;
-	GLfloat  bottom = 0, top = 700;
-	GLfloat  zNear = -700.0, zFar = 700.0;
+	GLfloat  left = 0, right = 500;
+	GLfloat  bottom = 0, top = 500;
+	GLfloat  zNear = -500.0, zFar = 500.0;
 
 	GLfloat aspect = GLfloat(width)/height;
 
