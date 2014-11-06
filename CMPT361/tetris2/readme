@@ -4,6 +4,7 @@ make
 
 
 
-Everything should be as specified in the instructions, other that I added the
-other shapes from tetris. I used some c++11 features, so I modified the
-makefile to include -std=c++11.
+Everything should be as specified in the instructions. I added text drawing for
+the bonus. It counts down from 9 in the top left corner and when it hits 0 the
+peice drops. I used some c++11 features, so I modified the makefile to include
+-std=c++11.
