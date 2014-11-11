@@ -1,6 +1,7 @@
 #include "sphere.h"
 #include <stdlib.h>
 #include <math.h>
+#include <cstdio>
 
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
@@ -13,6 +14,15 @@
  * stored in the "hit" variable
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
+	Vector oc = get_vec(o, sph->center);
+
+	float oc2 = vec_dot(u,oc);
+	float len = vec_len(oc);
+	float tot = oc2*oc2 - len + (sph->radius * sph->radius);
+	if (tot < 0) {
+		return -1;
+
+	}
 	return 0.0;
 }
 

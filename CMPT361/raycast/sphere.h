@@ -22,6 +22,7 @@ public:
 };
 
 // intersect ray with sphere
+float intersect_sphere(Point, Vector, Sphere *, Point *);
 Sphere *intersect_scene(Point, Vector, Sphere *, Point *, int);
 // return the unit normal at a point on sphere
 Vector sphere_normal(Point, Sphere *);

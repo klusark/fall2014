@@ -56,11 +56,17 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Sphere *sph) {
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
-RGB_float recursive_ray_trace() {
+RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
+	Point end;
+	float val = intersect_sphere(pos, ray, scene, &end);
+
+	RGB_float color = {0,0,0};
+	if (val == -1) {
+		color = {1,1,1};
+	}
 //
 // do your thing here
 //
-	RGB_float color;
 	return color;
 }
 
@@ -95,17 +101,15 @@ void ray_trace() {
 			// You need to change this!!!
 			//
 			// ret_color = recursive_ray_trace();
-			ret_color = background_clr; // just background for now
 
 			// Parallel rays can be cast instead using below
 			//
-			// ray.x = ray.y = 0;
-			// ray.z = -1.0;
-			// ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
+			ray.x = ray.y = 0;
+			ray.z = -1.0;
+			ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
 			// Checkboard for testing
-			RGB_float clr = {float(i/32), 0, float(j/32)};
-			ret_color = clr;
+			//RGB_float clr = {float(i/32), 0, float(j/32)};
 
 			frame[i][j][0] = GLfloat(ret_color.r);
 			frame[i][j][1] = GLfloat(ret_color.g);
