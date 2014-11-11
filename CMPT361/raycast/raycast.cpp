@@ -56,7 +56,7 @@ Point eye_pos = {0.0, 0.0, 0.0};  // eye position
 float image_plane = -1.5;           // image plane position
 
 // list of spheres in the scene
-Spheres *scene = NULL;
+Spheres *scene = nullptr;
 
 // light 1 position and color
 Point light1;
@@ -126,7 +126,7 @@ void init()
 	GLuint buffer;
 	glGenBuffers( 1, &buffer );
 	glBindBuffer( GL_ARRAY_BUFFER, buffer );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(points) + sizeof(tex_coords), NULL, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(points) + sizeof(tex_coords), nullptr, GL_STATIC_DRAW );
 	GLintptr offset = 0;
 	glBufferSubData( GL_ARRAY_BUFFER, offset, sizeof(points), points );
 	offset += sizeof(points);
