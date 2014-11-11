@@ -21,16 +21,16 @@ void save_image() {
 	unsigned char * bImg = new unsigned char[w * h * 3];
 
 	int index = 0;
-	for(int y = 0; y < h; y++){
+	for(int y = 0; y < h; y++) {
 		for(int x = 0; x < w; x++) {
 
-		float r = frame[y][x][0];
-		float g = frame[y][x][1];
-		float b = frame[y][x][2];
+			float r = frame[y][x][0];
+			float g = frame[y][x][1];
+			float b = frame[y][x][2];
 
-		bImg[index] = (b > 1.f) ? 255 : (unsigned char)(b*255); index++;
-		bImg[index] = (g > 1.f) ? 255 : (unsigned char)(g*255); index++;
-		bImg[index] = (r > 1.f) ? 255 : (unsigned char)(r*255); index++;
+			bImg[index] = (b > 1.f) ? 255 : (unsigned char)(b*255); index++;
+			bImg[index] = (g > 1.f) ? 255 : (unsigned char)(g*255); index++;
+			bImg[index] = (r > 1.f) ? 255 : (unsigned char)(r*255); index++;
 		}
 	}
 
@@ -40,19 +40,19 @@ void save_image() {
 
 	int filesize = 54 + 3*w*h;
 
-	bmpfileheader[ 2] = (unsigned char)(filesize    );
+	bmpfileheader[ 2] = (unsigned char)(filesize);
 	bmpfileheader[ 3] = (unsigned char)(filesize>> 8);
 	bmpfileheader[ 4] = (unsigned char)(filesize>>16);
 	bmpfileheader[ 5] = (unsigned char)(filesize>>24);
 
-	bmpinfoheader[ 4] = (unsigned char)(       w    );
-	bmpinfoheader[ 5] = (unsigned char)(       w>> 8);
-	bmpinfoheader[ 6] = (unsigned char)(       w>>16);
-	bmpinfoheader[ 7] = (unsigned char)(       w>>24);
-	bmpinfoheader[ 8] = (unsigned char)(       h    );
-	bmpinfoheader[ 9] = (unsigned char)(       h>> 8);
-	bmpinfoheader[10] = (unsigned char)(       h>>16);
-	bmpinfoheader[11] = (unsigned char)(       h>>24);
+	bmpinfoheader[ 4] = (unsigned char)(w);
+	bmpinfoheader[ 5] = (unsigned char)(w>> 8);
+	bmpinfoheader[ 6] = (unsigned char)(w>>16);
+	bmpinfoheader[ 7] = (unsigned char)(w>>24);
+	bmpinfoheader[ 8] = (unsigned char)(h);
+	bmpinfoheader[ 9] = (unsigned char)(h>> 8);
+	bmpinfoheader[10] = (unsigned char)(h>>16);
+	bmpinfoheader[11] = (unsigned char)(h>>24);
 
 
 	FILE *fp;
@@ -62,19 +62,18 @@ void save_image() {
 	printf("Saving image %s: %d x %d\n", fname, w, h);
 	fp = fopen(fname, "wb");
 	if (!fp) {
-	printf("Unable to open file '%s'\n",fname);
-	return;
+		printf("Unable to open file '%s'\n",fname);
+		return;
 	}
 
 
-	fwrite(bmpfileheader,1,14,fp);
-	fwrite(bmpinfoheader,1,40,fp);
+	fwrite(bmpfileheader, 1, 14, fp);
+	fwrite(bmpinfoheader, 1, 40, fp);
 
-	for(int y = h-1; y >= 0; y--)
-	{
+	for(int y = h-1; y >= 0; y--) {
 		int offset = w * (h - 1 - y) * 3;
 		fwrite(bImg + offset, 3, w, fp);
-		fwrite(bmppad,1,(4-(w*3)%4)%4,fp);
+		fwrite(bmppad, 1, (4 - (w * 3) % 4) % 4, fp);
 	}
 
 
@@ -88,20 +87,22 @@ void save_image() {
  * DO NOT CHANGE
  **************************************************************/
 void histogram_normalization() {
-  GLfloat max_val = 0.0;
-  int i, j;
+	GLfloat max_val = 0.0;
+	int i, j;
 
-  for (i=0; i<win_height; i++)
-    for (j=0; j<win_width; j++) {
-      if (frame[i][j][0] > max_val) max_val = frame[i][j][0];
-      if (frame[i][j][1] > max_val) max_val = frame[i][j][1];
-      if (frame[i][j][2] > max_val) max_val = frame[i][j][2];
-    }
+	for (i=0; i<win_height; i++) {
+		for (j=0; j<win_width; j++) {
+			if (frame[i][j][0] > max_val) max_val = frame[i][j][0];
+			if (frame[i][j][1] > max_val) max_val = frame[i][j][1];
+			if (frame[i][j][2] > max_val) max_val = frame[i][j][2];
+		}
+	}
 
-  for (i=0; i<win_height; i++)
-    for (j=0; j<win_width; j++) {
-      frame[i][j][0] /= max_val;
-      frame[i][j][1] /= max_val;
-      frame[i][j][2] /= max_val;
-    }
+	for (i=0; i<win_height; i++) {
+		for (j=0; j<win_width; j++) {
+			frame[i][j][0] /= max_val;
+			frame[i][j][1] /= max_val;
+			frame[i][j][2] /= max_val;
+		}
+	}
 }

@@ -7,6 +7,6 @@ out vec2 texCoord;
 
 void main()
 {
-    gl_Position = vPosition;
+	gl_Position = vPosition;
 	texCoord = vTexCoord;
 }

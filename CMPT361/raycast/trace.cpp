@@ -73,48 +73,48 @@ RGB_float recursive_ray_trace() {
  * if you must.
  *********************************************************************/
 void ray_trace() {
-  int i, j;
-  float x_grid_size = image_width / float(win_width);
-  float y_grid_size = image_height / float(win_height);
-  float x_start = -0.5 * image_width;
-  float y_start = -0.5 * image_height;
-  RGB_float ret_color;
-  Point cur_pixel_pos;
-  Vector ray;
+	int i, j;
+	float x_grid_size = image_width / float(win_width);
+	float y_grid_size = image_height / float(win_height);
+	float x_start = -0.5 * image_width;
+	float y_start = -0.5 * image_height;
+	RGB_float ret_color;
+	Point cur_pixel_pos;
+	Vector ray;
 
-  // ray is cast through center of pixel
-  cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
-  cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
-  cur_pixel_pos.z = image_plane;
+	// ray is cast through center of pixel
+	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
+	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
+	cur_pixel_pos.z = image_plane;
 
-  for (i=0; i<win_height; i++) {
-    for (j=0; j<win_width; j++) {
-      ray = get_vec(eye_pos, cur_pixel_pos);
+	for (i=0; i<win_height; i++) {
+		for (j=0; j<win_width; j++) {
+			ray = get_vec(eye_pos, cur_pixel_pos);
 
-      //
-      // You need to change this!!!
-      //
-      // ret_color = recursive_ray_trace();
-      ret_color = background_clr; // just background for now
+			//
+			// You need to change this!!!
+			//
+			// ret_color = recursive_ray_trace();
+			ret_color = background_clr; // just background for now
 
-      // Parallel rays can be cast instead using below
-      //
-      // ray.x = ray.y = 0;
-      // ray.z = -1.0;
-      // ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
+			// Parallel rays can be cast instead using below
+			//
+			// ray.x = ray.y = 0;
+			// ray.z = -1.0;
+			// ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-// Checkboard for testing
-RGB_float clr = {float(i/32), 0, float(j/32)};
-ret_color = clr;
+			// Checkboard for testing
+			RGB_float clr = {float(i/32), 0, float(j/32)};
+			ret_color = clr;
 
-      frame[i][j][0] = GLfloat(ret_color.r);
-      frame[i][j][1] = GLfloat(ret_color.g);
-      frame[i][j][2] = GLfloat(ret_color.b);
+			frame[i][j][0] = GLfloat(ret_color.r);
+			frame[i][j][1] = GLfloat(ret_color.g);
+			frame[i][j][2] = GLfloat(ret_color.b);
 
-      cur_pixel_pos.x += x_grid_size;
-    }
+			cur_pixel_pos.x += x_grid_size;
+		}
 
-    cur_pixel_pos.y += y_grid_size;
-    cur_pixel_pos.x = x_start;
-  }
+		cur_pixel_pos.y += y_grid_size;
+		cur_pixel_pos.x = x_start;
+	}
 }
