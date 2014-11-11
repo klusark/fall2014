@@ -12,7 +12,7 @@
  * If there is an intersection, the point of intersection should be
  * stored in the "hit" variable
  **********************************************************************/
-float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
+float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 	return 0.0;
 }
 
@@ -22,7 +22,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  * which arguments to use for the function. For exmaple, note that you
  * should return the point of intersection to the calling function.
  **********************************************************************/
-Spheres *intersect_scene() {
+Sphere *intersect_scene() {
 //
 // do your thing here
 //
@@ -35,12 +35,12 @@ Spheres *intersect_scene() {
  *
  * You need not change this.
  *****************************************************/
-Spheres *add_sphere(Spheres *slist, Point ctr, float rad, float amb[],
+Sphere *add_sphere(Sphere *slist, Point ctr, float rad, float amb[],
 				float dif[], float spe[], float shine,
 				float refl, int sindex) {
-	Spheres *new_sphere;
+	Sphere *new_sphere;
 
-	new_sphere = new Spheres();
+	new_sphere = new Sphere();
 	new_sphere->index = sindex;
 	new_sphere->center = ctr;
 	new_sphere->radius = rad;
@@ -70,7 +70,7 @@ Spheres *add_sphere(Spheres *slist, Point ctr, float rad, float amb[],
 /******************************************
  * computes a sphere normal - done for you
  ******************************************/
-Vector sphere_normal(Point q, Spheres *sph) {
+Vector sphere_normal(Point q, Sphere *sph) {
 	Vector rc;
 
 	rc = get_vec(sph->center, q);

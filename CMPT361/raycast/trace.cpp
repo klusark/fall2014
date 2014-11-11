@@ -20,7 +20,7 @@ extern float image_plane;
 extern RGB_float background_clr;
 extern RGB_float null_clr;
 
-extern Spheres *scene;
+extern Sphere *scene;
 
 // light 1 position and color
 extern Point light1;
@@ -44,7 +44,7 @@ extern int step_max;
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
+RGB_float phong(Point q, Vector v, Vector surf_norm, Sphere *sph) {
 //
 // do your thing here
 //

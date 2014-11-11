@@ -10,7 +10,7 @@ extern float light1_diffuse[3];
 extern float light1_specular[3];
 
 extern float global_ambient[3];
-extern Spheres *scene;
+extern Sphere *scene;
 
 extern RGB_float background_clr;
 extern float decay_a;

@@ -3,7 +3,8 @@
  **********************************************************************/
 #include "vector.h"
 
-typedef struct sphere {
+class Sphere {
+public:
 	int index;				// identifies a sphere; must be greater than 0
 
 	Point center;
@@ -17,13 +18,13 @@ typedef struct sphere {
 	float reflectance;		 // this number [0,1] determines how much
 							 // reflected light contributes to the color
 							 // of a pixel
-	struct sphere *next;
-} Spheres;	 // a list of spheres
+	Sphere *next;
+};
 
 // intersect ray with sphere
-Spheres *intersect_scene(Point, Vector, Spheres *, Point *, int);
+Sphere *intersect_scene(Point, Vector, Sphere *, Point *, int);
 // return the unit normal at a point on sphere
-Vector sphere_normal(Point, Spheres *);
+Vector sphere_normal(Point, Sphere *);
 // add a sphere to the sphere list
-Spheres *add_sphere(Spheres *, Point, float, float [], float [], float [], float, float, int);
+Sphere *add_sphere(Sphere *, Point, float, float [], float [], float [], float, float, int);
 

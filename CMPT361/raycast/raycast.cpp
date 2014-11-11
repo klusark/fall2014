@@ -56,7 +56,7 @@ Point eye_pos = {0.0, 0.0, 0.0};  // eye position
 float image_plane = -1.5;           // image plane position
 
 // list of spheres in the scene
-Spheres *scene = nullptr;
+Sphere *scene = nullptr;
 
 // light 1 position and color
 Point light1;
