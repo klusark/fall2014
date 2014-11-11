@@ -5,7 +5,7 @@
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
  * use the parametric representation of a line and do the intersection.
- * The function should return the parameter value for the intersection, 
+ * The function should return the parameter value for the intersection,
  * which will be compared with others to determine which intersection
  * is closest. The value -1.0 is returned if there is no intersection
  *
@@ -36,7 +36,7 @@ Spheres *intersect_scene() {
  * You need not change this.
  *****************************************************/
 Spheres *add_sphere(Spheres *slist, Point ctr, float rad, float amb[],
-		    float dif[], float spe[], float shine, 
+		    float dif[], float spe[], float shine,
 		    float refl, int sindex) {
   Spheres *new_sphere;
 

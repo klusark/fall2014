@@ -10,7 +10,7 @@
 extern int win_width;
 extern int win_height;
 
-extern GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];  
+extern GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
 
 extern float image_width;
 extern float image_height;

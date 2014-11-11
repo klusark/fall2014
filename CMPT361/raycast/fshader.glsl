@@ -6,8 +6,8 @@ out vec4  fColor;
 
 uniform sampler2D texture;
 
-void main() 
-{ 
+void main()
+{
 	fColor = texture2D( texture, texCoord );
-} 
+}
 

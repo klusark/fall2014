@@ -56,7 +56,7 @@ Vector get_vec(Point q, Point p) {
 
 //
 // return point from a point and a vector
-// 
+//
 Point get_point(Point p, Vector q) {
   Point rc;
   rc.x = p.x + q.x;

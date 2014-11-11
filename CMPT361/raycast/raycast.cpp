@@ -2,7 +2,7 @@
  * CMPT 361, Summer 2012
  *
  *  raycast.cpp
- *     
+ *
  *  Render a simple scene using ray tracing
  *
  *  NAME:
@@ -37,7 +37,7 @@
 int win_width = WIN_WIDTH;
 int win_height = WIN_HEIGHT;
 
-GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];  
+GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
 // array for the final image
 // This gets displayed in glut window via texture mapping,
 // you can also save a copy as bitmap by pressing 's'
