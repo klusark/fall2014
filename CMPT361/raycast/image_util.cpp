@@ -11,7 +11,7 @@ extern GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
 
 /*********************************************************
  * This function saves the current image to a ppm file
- *		
+ *
  * DO NOT CHANGE
  *********************************************************/
 void save_image() {

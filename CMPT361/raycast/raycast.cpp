@@ -93,8 +93,8 @@ void init()
 	vec4 points[NumPoints] = {
 		vec4( -ext, -ext,  0, 1.0 ), //v1
 		vec4(  ext, -ext,  0, 1.0 ), //v2
-		vec4( -ext,  ext,  0, 1.0 ), //v3	
-		vec4( -ext,  ext,  0, 1.0 ), //v3	
+		vec4( -ext,  ext,  0, 1.0 ), //v3
+		vec4( -ext,  ext,  0, 1.0 ), //v3
 		vec4(  ext, -ext,  0, 1.0 ), //v2
 		vec4(  ext,  ext,  0, 1.0 )  //v4
 	};
@@ -210,7 +210,7 @@ int main( int argc, char **argv )
 		printf("./raycast [-u | -d] step_max <options>\n");
 		return -1;
 	}
-	
+
 	if (strcmp(argv[1], "-u") == 0) {  // user defined scene
 		set_up_user_scene();
 	} else { // default scene
