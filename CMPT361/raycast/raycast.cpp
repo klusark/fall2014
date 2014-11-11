@@ -2,14 +2,14 @@
  * CMPT 361, Summer 2012
  *
  *  raycast.cpp
- *      
+ *     
  *  Render a simple scene using ray tracing
- * 
+ *
  *  NAME:
  *  SFU ID:
  *
  *  Template code for drawing a scene using raycasting.
- *  Some portions of the code was originally written by 
+ *  Some portions of the code was originally written by
  *  M. vandePanne - and then modified by R. Zhang & H. Li
 ***********************************************************/
 
@@ -37,9 +37,9 @@
 int win_width = WIN_WIDTH;
 int win_height = WIN_HEIGHT;
 
-GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];   
-// array for the final image 
-// This gets displayed in glut window via texture mapping, 
+GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];  
+// array for the final image
+// This gets displayed in glut window via texture mapping,
 // you can also save a copy as bitmap by pressing 's'
 
 float image_width = IMAGE_WIDTH;
@@ -144,7 +144,7 @@ void init()
 		BUFFER_OFFSET(offset) );
 
 	offset += sizeof(points);
-	GLuint vTexCoord = glGetAttribLocation( program, "vTexCoord" ); 
+	GLuint vTexCoord = glGetAttribLocation( program, "vTexCoord" );
 	glEnableVertexAttribArray( vTexCoord );
 	glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, GL_FALSE, 0,
 		BUFFER_OFFSET(offset) );
