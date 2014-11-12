@@ -91,7 +91,7 @@ void normalize(Vector *u) {
 //
 // add two RGB colors
 //
-RGB_float clr_add(RGB_float p, RGB_float q) {
+RGB_float operator +(const RGB_float &p, const RGB_float &q) {
 	RGB_float ret;
 
 	ret.r = p.r + q.r;
@@ -101,12 +101,24 @@ RGB_float clr_add(RGB_float p, RGB_float q) {
 	return ret;
 }
 
-RGB_float clr_scale(RGB_float p, float s) {
+RGB_float operator *(const RGB_float &p, float s) {
 	RGB_float ret;
 
-	ret.r = s * p.r;
-	ret.g = s * p.g;
-	ret.b = s * p.b;
+	ret.r = p.r * s;
+	ret.g = p.g * s;
+	ret.b = p.b * s;
 
 	return ret;
+}
+
+void operator /=(RGB_float &p, float s) {
+	p.r /= s;
+	p.g /= s;
+	p.b /= s;
+}
+
+void operator +=(RGB_float &p, const RGB_float &q) {
+	p.r += q.r;
+	p.g += q.g;
+	p.b += q.b;
 }

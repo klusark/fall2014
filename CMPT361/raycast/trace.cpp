@@ -38,6 +38,7 @@ extern float decay_b;
 extern float decay_c;
 
 extern int shadow_on;
+extern int antialias_on;
 extern int step_max;
 
 /////////////////////////////////////////////////////////////////////
@@ -106,7 +107,7 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	if (num <= step_max) {
 		Vector h = vec_reflect(ray, norm);
 		RGB_float ref = recursive_ray_trace(end, h, num + 1);
-		color = clr_add(color, clr_scale(ref, s->reflectance));
+		color = color + (ref * s->reflectance);
 	}
 	return color;
 }
@@ -136,21 +137,39 @@ void ray_trace() {
 
 	for (i=0; i<win_height; i++) {
 		for (j=0; j<win_width; j++) {
-			ray = get_vec(eye_pos, cur_pixel_pos);
+			//ray = get_vec(eye_pos, cur_pixel_pos);
 
-			//
-			// You need to change this!!!
-			//
-			// ret_color = recursive_ray_trace();
-
-			// Parallel rays can be cast instead using below
-			//
-			ray.x = ray.y = 0;
+			ray.x = 0;
+			ray.y = 0;
 			ray.z = -1.0;
-			ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
+			RGB_float colors[5];
+			colors[0] = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-			// Checkboard for testing
-			//RGB_float clr = {float(i/32), 0, float(j/32)};
+			if (antialias_on) {
+				cur_pixel_pos.x += x_grid_size / 2;
+				cur_pixel_pos.y += y_grid_size / 2;
+				colors[1] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+				cur_pixel_pos.y -= y_grid_size;
+				colors[2] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+				cur_pixel_pos.x -= x_grid_size;
+				colors[3] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+				cur_pixel_pos.y += y_grid_size;
+				colors[4] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+				cur_pixel_pos.y -= y_grid_size / 2;
+				cur_pixel_pos.x += x_grid_size / 2;
+
+				ret_color = {0,0,0};
+				for (int i = 0; i < 5; ++i) {
+					ret_color += colors[i];
+				}
+				ret_color /= 5;
+			} else {
+				ret_color = colors[0];
+			}
 
 			frame[i][j][0] = GLfloat(ret_color.r);
 			frame[i][j][1] = GLfloat(ret_color.g);

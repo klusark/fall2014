@@ -27,8 +27,11 @@ Vector vec_reflect(Vector, Vector);
 Vector get_vec(Point, Point);
 Point get_point(Point, Vector);
 void normalize(Vector *);
-RGB_float clr_add(RGB_float, RGB_float);
-RGB_float clr_scale(RGB_float, float);
+
+RGB_float operator +(const RGB_float &, const RGB_float &);
+RGB_float operator *(const RGB_float &, float);
+void operator +=(RGB_float &, const RGB_float &);
+void operator /=(RGB_float &, float);
 
 Vector operator *(const Vector &, float v);
 Vector operator -(const Vector &, const Vector &);
