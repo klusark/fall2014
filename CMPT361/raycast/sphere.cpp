@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <cstdio>
+#include <algorithm>
 
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
@@ -21,9 +22,15 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 	float tot = oc2*oc2 - len*len + (sph->radius * sph->radius);
 	if (tot <= 0) {
 		return -1;
-
 	}
-	return 100;
+	float sq = sqrt(tot);
+	float d1 = -oc2 + sq;
+	float d2 = -oc2 - sq;
+	float d = std::min(d1,d2);
+	Vector sc = vec_scale(oc, d);
+	Point p = get_point(o, sc);
+	*hit = p;
+	return d;
 }
 
 /*********************************************************************

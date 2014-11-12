@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
+#include <cstdio>
 
 #include "raycast.h"
 #include "global.h"
@@ -44,11 +45,21 @@ extern int step_max;
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(Point q, Vector v, Vector surf_norm, Sphere *sph) {
-//
-// do your thing here
-//
-	RGB_float color;
+RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph) {
+	float ip[3] = {0,0,0};
+	for (int i = 0; i < 3; ++i) {
+		ip[i] += global_ambient[i];
+		ip[i] += sph->mat_ambient[i] * light1_ambient[i];
+
+		Vector lm = get_vec(q, light1);
+		normalize(&lm);
+		normalize(&v);
+		ip[i] += light1_diffuse[i] * sph->mat_diffuse[i] * vec_dot(lm, norm);
+		float nlen = vec_len(norm);
+		Vector r = vec_minus(v, vec_scale(norm, vec_dot(vec_scale(v, 2), norm)/(nlen * nlen)));
+		ip[i] += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
+	}
+	RGB_float color = {ip[0], ip[1], ip[2]};
 	return color;
 }
 
@@ -57,14 +68,16 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Sphere *sph) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
-	RGB_float color = {0,0,0};
+	RGB_float color = background_clr;
 	bool hit = false;
 	for (auto *s : scene) {
 		Point end;
 		float val = intersect_sphere(pos, ray, s, &end);
 
 		if (val != -1) {
-			hit = true;
+			Vector norm = sphere_normal(end, s);
+			Vector V = get_vec(pos, end);
+			color = phong(end, V, norm, s);
 			break;
 		}
 	}
