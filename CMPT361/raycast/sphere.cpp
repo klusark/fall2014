@@ -18,7 +18,7 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 
 	float oc2 = vec_dot(u,oc);
 	float len = vec_len(oc);
-	float tot = oc2*oc2 - len + (sph->radius * sph->radius);
+	float tot = oc2*oc2 - len*len + (sph->radius * sph->radius);
 	if (tot <= 0) {
 		return -1;
 

@@ -60,9 +60,6 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
 	RGB_float color = {0,0,0};
 	bool hit = false;
 	for (auto *s : scene) {
-		if (s->index != 3) {
-			continue;
-		}
 		Point end;
 		float val = intersect_sphere(pos, ray, s, &end);
 
