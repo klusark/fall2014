@@ -16,6 +16,7 @@
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 	Vector oc = get_vec(sph->center, o);
+	normalize(&u);
 
 	float loc = vec_dot(u,oc);
 	float len = vec_len(oc);
