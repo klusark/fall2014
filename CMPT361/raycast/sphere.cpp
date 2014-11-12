@@ -28,13 +28,12 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point &hit) {
 	float d1 = (-loc) + sq;
 	float d2 = (-loc) - sq;
 	float d = -1;
-	if (d1 > 0 && d2 > 0) {
+	if (d1 > 0.001 && d2 > 0.001) {
 		d = std::min(d1,d2);
-	} else if (d1 > 0) {
+	} else if (d1 > 0.001) {
 		d = d1;
-	} else if (d2 > 0) {
+	} else if (d2 > 0.001) {
 		d = d2;
-	} else {
 	}
 	Vector sc = u * d;
 	hit = get_point(o, sc);

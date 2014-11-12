@@ -63,6 +63,11 @@ RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph) {
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);
 	normalize(&lm);
+	Point end;
+	bool indirect = false;
+	if (shadow_on && getClosestSphere(q, lm, end) != nullptr) {
+		indirect = true;
+	}
 	Vector r = vec_reflect(v, norm);
 	normalize(&v);
 	normalize(&r);
@@ -73,11 +78,14 @@ RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph) {
 		ip[i] += global_ambient[i] * sph->mat_ambient[i];
 		ip[i] += sph->mat_ambient[i] * light1_ambient[i];
 
-		float ds = 0;
-		ds += light1_diffuse[i] * sph->mat_diffuse[i] * vec_dot(lm, norm);
-		ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
 
-		ip[i] += ds * decay;
+		float ds = 0;
+		if (!indirect) {
+			ds += light1_diffuse[i] * sph->mat_diffuse[i] * vec_dot(lm, norm);
+			ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
+
+			ip[i] += ds * decay;
+		}
 	}
 	RGB_float color = {ip[0], ip[1], ip[2]};
 	return color;
