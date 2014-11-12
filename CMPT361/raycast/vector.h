@@ -23,9 +23,9 @@ typedef struct {
 
 float vec_len(const Vector &);
 float vec_dot(const Vector &, const Vector &);
-Vector vec_reflect(Vector, Vector);
-Vector get_vec(Point, Point);
-Point get_point(Point, Vector);
+Vector vec_reflect(const Vector &, const Vector &);
+Vector get_vec(const Point &, const Point &);
+Point get_point(const Point &, const Vector &);
 void normalize(Vector *);
 
 RGB_float operator +(const RGB_float &, const RGB_float &);

@@ -4,7 +4,7 @@
 #include "vector.h"
 #include <math.h>
 
-Vector vec_reflect(Vector v, Vector norm) {
+Vector vec_reflect(const Vector &v, const Vector &norm) {
 	return v - (norm * 2 * vec_dot(v, norm));
 }
 
@@ -43,7 +43,7 @@ float vec_dot(const Vector &p, const Vector &q) {
 //
 // return sum of two vectors
 //
-Vector vec_plus(Vector p, Vector q) {
+Vector vec_plus(const Vector &p, const Vector &q) {
 	Vector rc;
 	rc.x = p.x + q.x;
 	rc.y = p.y + q.y;
@@ -55,7 +55,7 @@ Vector vec_plus(Vector p, Vector q) {
 //
 // return vector from point point to another
 //
-Vector get_vec(Point q, Point p) {
+Vector get_vec(const Point &q, const Point &p) {
 	Vector rc;
 	rc.x = p.x - q.x;
 	rc.y = p.y - q.y;
@@ -67,7 +67,7 @@ Vector get_vec(Point q, Point p) {
 //
 // return point from a point and a vector
 //
-Point get_point(Point p, Vector q) {
+Point get_point(const Point &p, const Vector &q) {
 	Point rc;
 	rc.x = p.x + q.x;
 	rc.y = p.y + q.y;
