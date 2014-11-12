@@ -48,13 +48,16 @@ extern int step_max;
 RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
+	float dist = vec_len(lm);
 	normalize(&lm);
-	normalize(&v);
 	Vector r = vec_reflect(v, norm);
-	float decay = 1/(decay_a + decay_b * distance + decay_c * distance * distance);
+	normalize(&v);
+	normalize(&r);
+
+	float decay = 1/(decay_a + decay_b * dist + decay_c * dist * dist);
 
 	for (int i = 0; i < 3; ++i) {
-		ip[i] += global_ambient[i];
+		ip[i] += global_ambient[i] * sph->mat_ambient[i];
 		ip[i] += sph->mat_ambient[i] * light1_ambient[i];
 
 		float ds = 0;
@@ -73,29 +76,21 @@ RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	RGB_float color = background_clr;
-	bool hit = false;
 	for (auto *s : scene) {
 		Point end;
 		float val = intersect_sphere(pos, ray, s, &end);
 
 		if (val != -1) {
 			Vector norm = sphere_normal(end, s);
-			Vector V = get_vec(pos,end);
-			color = phong(end, V, norm, s, val);
-			if (num < 2) {
-				Vector h = vec_reflect(V, norm);
+			color = phong(end, ray, norm, s, val);
+			if (num <= step_max) {
+				Vector h = vec_reflect(ray, norm);
 				RGB_float ref = recursive_ray_trace(end, h, num + 1);
 				color = clr_add(color, clr_scale(ref, s->reflectance));
 			}
 			break;
 		}
 	}
-	if (hit) {
-		color = {1,1,1};
-	}
-//
-// do your thing here
-//
 	return color;
 }
 

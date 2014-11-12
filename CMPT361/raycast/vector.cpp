@@ -5,22 +5,38 @@
 #include <math.h>
 
 Vector vec_reflect(Vector v, Vector norm) {
-	float nlen = vec_len(norm);
-	Vector r = vec_minus(v, vec_scale(norm, vec_dot(vec_scale(v, 2), norm)/(nlen * nlen)));
-	return r;
+	return v - (norm * 2 * vec_dot(v, norm));
 }
 
+Vector operator *(const Vector &v, float s) {
+	Vector ret;
+
+	ret.x = s * v.x;
+	ret.y = s * v.y;
+	ret.z = s * v.z;
+
+	return ret;
+}
+
+Vector operator -(const Vector &p, const Vector &q) {
+	Vector rc;
+	rc.x = p.x - q.x;
+	rc.y = p.y - q.y;
+	rc.z = p.z - q.z;
+
+	return rc;
+}
 //
 // return length of a vector
 //
-float vec_len(Vector u) {
+float vec_len(const Vector &u) {
 	return sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
 }
 
 //
 // return doc product of two vectors
 //
-float vec_dot(Vector p, Vector q) {
+float vec_dot(const Vector &p, const Vector &q) {
 	return p.x * q.x + p.y * q.y + p.z * q.z;
 }
 
@@ -32,18 +48,6 @@ Vector vec_plus(Vector p, Vector q) {
 	rc.x = p.x + q.x;
 	rc.y = p.y + q.y;
 	rc.z = p.z + q.z;
-
-	return rc;
-}
-
-//
-// return difference between two vectors
-//
-Vector vec_minus(Vector p, Vector q) {
-	Vector rc;
-	rc.x = p.x - q.x;
-	rc.y = p.y - q.y;
-	rc.z = p.z - q.z;
 
 	return rc;
 }
@@ -82,19 +86,6 @@ void normalize(Vector *u) {
 	(*u).x = (*u).x / p;
 	(*u).y = (*u).y / p;
 	(*u).z = (*u).z / p;
-}
-
-//
-// return a scaled vector
-//
-Vector vec_scale(Vector p, float scale) {
-	Vector ret;
-
-	ret.x = scale * p.x;
-	ret.y = scale * p.y;
-	ret.z = scale * p.z;
-
-	return ret;
 }
 
 //

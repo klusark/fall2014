@@ -36,7 +36,7 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 		d = d2;
 	} else {
 	}
-	Vector sc = vec_scale(oc, d);
+	Vector sc = u * d;
 	Point p = get_point(o, sc);
 	*hit = p;
 	return d;
