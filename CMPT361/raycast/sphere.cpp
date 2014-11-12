@@ -15,18 +15,26 @@
  * stored in the "hit" variable
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
-	Vector oc = get_vec(o, sph->center);
+	Vector oc = get_vec(sph->center, o);
 
-	float oc2 = vec_dot(u,oc);
+	float loc = vec_dot(u,oc);
 	float len = vec_len(oc);
-	float tot = oc2*oc2 - len*len + (sph->radius * sph->radius);
+	float tot = loc*loc - len*len + (sph->radius * sph->radius);
 	if (tot <= 0) {
 		return -1;
 	}
 	float sq = sqrt(tot);
-	float d1 = -oc2 + sq;
-	float d2 = -oc2 - sq;
-	float d = std::min(d1,d2);
+	float d1 = (-loc) + sq;
+	float d2 = (-loc) - sq;
+	float d = -1;
+	if (d1 > 0 && d2 > 0) {
+		d = std::min(d1,d2);
+	} else if (d1 > 0) {
+		d = d1;
+	} else if (d2 > 0) {
+		d = d2;
+	} else {
+	}
 	Vector sc = vec_scale(oc, d);
 	Point p = get_point(o, sc);
 	*hit = p;
