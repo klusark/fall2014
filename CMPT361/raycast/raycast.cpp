@@ -26,6 +26,7 @@
 #include "sphere.h"
 #include "image_util.h"
 #include "scene.h"
+#include "model.h"
 
 //
 // Global variables
@@ -157,6 +158,9 @@ void init()
 	glUniform1i( glGetUniformLocation(program, "texture"), 0 );
 
 	glClearColor( 1.0, 1.0, 1.0, 1.0 );
+
+
+	Model m("chess_pieces/bishop.smf");
 }
 
 /*********************************************************
