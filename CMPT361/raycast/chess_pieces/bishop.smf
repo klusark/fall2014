@@ -1,10 +1,4 @@
-#$SMF 2.0
-#$vertices 250
-#$faces 496
-#
-# bishop.smf created by IVCON.
-# Original data in bishop.wrl.
-#
+# 250 496
 v -0.019672 -0.000086 0.000000
 v -0.019578 0.004915 0.000000
 v -0.018458 0.002987 0.000000
