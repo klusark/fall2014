@@ -71,7 +71,7 @@ RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
-RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
+RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	RGB_float color = background_clr;
 	bool hit = false;
 	for (auto *s : scene) {
@@ -80,8 +80,13 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
 
 		if (val != -1) {
 			Vector norm = sphere_normal(end, s);
-			Vector V = get_vec(end, pos);
+			Vector V = get_vec(pos,end);
 			color = phong(end, V, norm, s, val);
+			if (num < 2) {
+				Vector h = vec_reflect(V, norm);
+				RGB_float ref = recursive_ray_trace(end, h, num + 1);
+				color = clr_add(color, clr_scale(ref, s->reflectance));
+			}
 			break;
 		}
 	}
