@@ -18,7 +18,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
+#include "raycast.h"
 #include "trace.h"
 #include "global.h"
 #include "sphere.h"
@@ -56,7 +58,7 @@ Point eye_pos = {0.0, 0.0, 0.0};  // eye position
 float image_plane = -1.5;           // image plane position
 
 // list of spheres in the scene
-Sphere *scene = nullptr;
+std::vector<Sphere *> scene;
 
 // light 1 position and color
 Point light1;
@@ -186,7 +188,6 @@ void keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
 	case 'q':case 'Q':
-		free(scene);
 		exit(0);
 		break;
 	case 's':case 'S':

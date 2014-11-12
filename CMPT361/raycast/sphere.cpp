@@ -19,11 +19,11 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 	float oc2 = vec_dot(u,oc);
 	float len = vec_len(oc);
 	float tot = oc2*oc2 - len + (sph->radius * sph->radius);
-	if (tot < 0) {
+	if (tot <= 0) {
 		return -1;
 
 	}
-	return 0.0;
+	return 100;
 }
 
 /*********************************************************************
@@ -45,36 +45,23 @@ Sphere *intersect_scene() {
  *
  * You need not change this.
  *****************************************************/
-Sphere *add_sphere(Sphere *slist, Point ctr, float rad, float amb[],
+Sphere::Sphere(Point ctr, float rad, float amb[],
 				float dif[], float spe[], float shine,
 				float refl, int sindex) {
-	Sphere *new_sphere;
-
-	new_sphere = new Sphere();
-	new_sphere->index = sindex;
-	new_sphere->center = ctr;
-	new_sphere->radius = rad;
-	new_sphere->mat_ambient[0] = amb[0];
-	new_sphere->mat_ambient[1] = amb[1];
-	new_sphere->mat_ambient[2] = amb[2];
-	new_sphere->mat_diffuse[0] = dif[0];
-	new_sphere->mat_diffuse[1] = dif[1];
-	new_sphere->mat_diffuse[2] = dif[2];
-	new_sphere->mat_specular[0] = spe[0];
-	new_sphere->mat_specular[1] = spe[1];
-	new_sphere->mat_specular[2] = spe[2];
-	new_sphere->mat_shineness = shine;
-	new_sphere->reflectance = refl;
-	new_sphere->next = nullptr;
-
-	if (slist == nullptr) { // first object
-		slist = new_sphere;
-	} else { // insert at the beginning
-		new_sphere->next = slist;
-		slist = new_sphere;
-	}
-
-	return slist;
+	index = sindex;
+	center = ctr;
+	radius = rad;
+	mat_ambient[0] = amb[0];
+	mat_ambient[1] = amb[1];
+	mat_ambient[2] = amb[2];
+	mat_diffuse[0] = dif[0];
+	mat_diffuse[1] = dif[1];
+	mat_diffuse[2] = dif[2];
+	mat_specular[0] = spe[0];
+	mat_specular[1] = spe[1];
+	mat_specular[2] = spe[2];
+	mat_shineness = shine;
+	reflectance = refl;
 }
 
 /******************************************

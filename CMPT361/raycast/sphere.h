@@ -1,3 +1,5 @@
+#pragma once
+
 /**********************************************************************
  * Some stuff to handle spheres
  **********************************************************************/
@@ -5,6 +7,7 @@
 
 class Sphere {
 public:
+	Sphere(Point, float, float [], float [], float [], float, float, int);
 	int index;				// identifies a sphere; must be greater than 0
 
 	Point center;
@@ -18,7 +21,6 @@ public:
 	float reflectance;		 // this number [0,1] determines how much
 							 // reflected light contributes to the color
 							 // of a pixel
-	Sphere *next;
 };
 
 // intersect ray with sphere
@@ -27,5 +29,4 @@ Sphere *intersect_scene(Point, Vector, Sphere *, Point *, int);
 // return the unit normal at a point on sphere
 Vector sphere_normal(Point, Sphere *);
 // add a sphere to the sphere list
-Sphere *add_sphere(Sphere *, Point, float, float [], float [], float [], float, float, int);
 

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
+
+#include "raycast.h"
 #include "global.h"
 #include "sphere.h"
 
@@ -19,8 +21,6 @@ extern Point eye_pos;
 extern float image_plane;
 extern RGB_float background_clr;
 extern RGB_float null_clr;
-
-extern Sphere *scene;
 
 // light 1 position and color
 extern Point light1;
@@ -57,11 +57,21 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Sphere *sph) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int) {
-	Point end;
-	float val = intersect_sphere(pos, ray, scene, &end);
-
 	RGB_float color = {0,0,0};
-	if (val == -1) {
+	bool hit = false;
+	for (auto *s : scene) {
+		if (s->index != 3) {
+			continue;
+		}
+		Point end;
+		float val = intersect_sphere(pos, ray, s, &end);
+
+		if (val != -1) {
+			hit = true;
+			break;
+		}
+	}
+	if (hit) {
 		color = {1,1,1};
 	}
 //
