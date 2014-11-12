@@ -25,6 +25,7 @@ float vec_len(Vector);
 float vec_dot(Vector, Vector);
 Vector vec_plus(Vector, Vector);
 Vector vec_minus(Vector, Vector);
+Vector vec_reflect(Vector, Vector);
 Vector get_vec(Point, Point);
 Point get_point(Point, Vector);
 void normalize(Vector *);

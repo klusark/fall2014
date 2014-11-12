@@ -4,6 +4,12 @@
 #include "vector.h"
 #include <math.h>
 
+Vector vec_reflect(Vector v, Vector norm) {
+	float nlen = vec_len(norm);
+	Vector r = vec_minus(v, vec_scale(norm, vec_dot(vec_scale(v, 2), norm)/(nlen * nlen)));
+	return r;
+}
+
 //
 // return length of a vector
 //

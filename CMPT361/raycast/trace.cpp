@@ -47,18 +47,18 @@ extern int step_max;
  *********************************************************************/
 RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
 	float ip[3] = {0,0,0};
+	Vector lm = get_vec(q, light1);
+	normalize(&lm);
+	normalize(&v);
+	Vector r = vec_reflect(v, norm);
+	float decay = 1/(decay_a + decay_b * distance + decay_c * distance * distance);
+
 	for (int i = 0; i < 3; ++i) {
 		ip[i] += global_ambient[i];
 		ip[i] += sph->mat_ambient[i] * light1_ambient[i];
 
-		float decay = 1/(decay_a + decay_b * distance + decay_c * distance * distance);
 		float ds = 0;
-		Vector lm = get_vec(q, light1);
-		normalize(&lm);
-		normalize(&v);
 		ds += light1_diffuse[i] * sph->mat_diffuse[i] * vec_dot(lm, norm);
-		float nlen = vec_len(norm);
-		Vector r = vec_minus(v, vec_scale(norm, vec_dot(vec_scale(v, 2), norm)/(nlen * nlen)));
 		ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
 
 		ip[i] += ds * decay;
