@@ -86,4 +86,9 @@ void set_up_default_scene() {
  * You can create your own scene here
  ***************************************/
 void set_up_user_scene() {
+	set_up_default_scene();
+
+	scene[0]->transparency = 0.5;
+	scene[1]->transparency = 0.1;
+	scene[2]->transparency = 0.9;
 }

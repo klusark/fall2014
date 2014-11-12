@@ -39,6 +39,7 @@ extern float decay_c;
 
 extern int shadow_on;
 extern int antialias_on;
+extern int refract_on;
 extern int step_max;
 
 /////////////////////////////////////////////////////////////////////
@@ -107,7 +108,13 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	if (num <= step_max) {
 		Vector h = vec_reflect(ray, norm);
 		RGB_float ref = recursive_ray_trace(end, h, num + 1);
-		color = color + (ref * s->reflectance);
+		color += (ref * s->reflectance);
+
+		if (refract_on) {
+			h = vec_refract(ray, norm);
+			ref = recursive_ray_trace(end, h, num + 1);
+			color += (ref * s->transparency);
+		}
 	}
 	return color;
 }

@@ -8,6 +8,13 @@ Vector vec_reflect(const Vector &v, const Vector &norm) {
 	return v - (norm * 2 * vec_dot(v, norm));
 }
 
+Vector vec_refract(const Vector &v, const Vector &norm) {
+	float n = 1/1;
+	float c1 = -vec_dot(v, norm);
+	float c2 = sqrt(1 - n*n * (1- c1*c1));
+	return (v * n) + norm * (n * c1 - c2);
+}
+
 Vector operator *(const Vector &v, float s) {
 	Vector ret;
 
@@ -43,7 +50,7 @@ float vec_dot(const Vector &p, const Vector &q) {
 //
 // return sum of two vectors
 //
-Vector vec_plus(const Vector &p, const Vector &q) {
+Vector operator +(const Vector &p, const Vector &q) {
 	Vector rc;
 	rc.x = p.x + q.x;
 	rc.y = p.y + q.y;

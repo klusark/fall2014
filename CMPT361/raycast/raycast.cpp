@@ -82,6 +82,7 @@ int step_max = 1;
 // a flag to indicate whether you want to have shadows
 int shadow_on = 0;
 int antialias_on = 0;
+int refract_on = 0;
 
 
 // OpenGL
@@ -226,6 +227,7 @@ int main( int argc, char **argv )
 	{
 		if (strcmp(argv[i], "+s") == 0)	shadow_on = 1;
 		if (strcmp(argv[i], "+p") == 0)	antialias_on = 1;
+		if (strcmp(argv[i], "+r") == 0)	refract_on = 1;
 	}
 
 	//

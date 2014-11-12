@@ -21,6 +21,8 @@ public:
 	float reflectance;		 // this number [0,1] determines how much
 							 // reflected light contributes to the color
 							 // of a pixel
+
+	float transparency;
 };
 
 // intersect ray with sphere
