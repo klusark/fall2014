@@ -59,7 +59,7 @@ Sphere *getClosestSphere(const Point &pos, const Vector &ray, Point &end) {
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph) {
+RGB_float phong(const Point &q, Vector v, const Vector &norm, Sphere *sph) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);

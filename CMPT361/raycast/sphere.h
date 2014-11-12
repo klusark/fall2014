@@ -24,8 +24,8 @@ public:
 };
 
 // intersect ray with sphere
-float intersect_sphere(Point, Vector, Sphere *, Point &);
+float intersect_sphere(const Point &, const Vector &, Sphere *, Point &);
 // return the unit normal at a point on sphere
-Vector sphere_normal(Point, Sphere *);
+Vector sphere_normal(const Point &, Sphere *);
 // add a sphere to the sphere list
 
