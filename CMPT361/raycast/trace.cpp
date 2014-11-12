@@ -42,10 +42,23 @@ extern int step_max;
 
 /////////////////////////////////////////////////////////////////////
 
+Sphere *getClosestSphere(const Point &pos, const Vector &ray, Point &end) {
+	float closest = -1;
+	Sphere *sph = nullptr;
+	for (auto *s : scene) {
+		float val = intersect_sphere(pos, ray, s, end);
+		if (val != -1 && (closest == -1 || val < closest)) {
+			closest = val;
+			sph = s;
+		}
+	}
+	return sph;
+}
+
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
+RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);
@@ -75,21 +88,17 @@ RGB_float phong(Point q, Vector v, Vector norm, Sphere *sph, float distance) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
-	RGB_float color = background_clr;
-	for (auto *s : scene) {
-		Point end;
-		float val = intersect_sphere(pos, ray, s, &end);
-
-		if (val != -1) {
-			Vector norm = sphere_normal(end, s);
-			color = phong(end, ray, norm, s, val);
-			if (num <= step_max) {
-				Vector h = vec_reflect(ray, norm);
-				RGB_float ref = recursive_ray_trace(end, h, num + 1);
-				color = clr_add(color, clr_scale(ref, s->reflectance));
-			}
-			break;
-		}
+	Point end;
+	Sphere *s = getClosestSphere(pos, ray, end);
+	if (s == nullptr) {
+		return background_clr;
+	}
+	Vector norm = sphere_normal(end, s);
+	RGB_float color = phong(end, ray, norm, s);
+	if (num <= step_max) {
+		Vector h = vec_reflect(ray, norm);
+		RGB_float ref = recursive_ray_trace(end, h, num + 1);
+		color = clr_add(color, clr_scale(ref, s->reflectance));
 	}
 	return color;
 }

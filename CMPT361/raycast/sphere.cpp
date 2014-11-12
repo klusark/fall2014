@@ -14,7 +14,7 @@
  * If there is an intersection, the point of intersection should be
  * stored in the "hit" variable
  **********************************************************************/
-float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
+float intersect_sphere(Point o, Vector u, Sphere *sph, Point &hit) {
 	Vector oc = get_vec(sph->center, o);
 	normalize(&u);
 
@@ -37,24 +37,10 @@ float intersect_sphere(Point o, Vector u, Sphere *sph, Point *hit) {
 	} else {
 	}
 	Vector sc = u * d;
-	Point p = get_point(o, sc);
-	*hit = p;
+	hit = get_point(o, sc);
 	return d;
 }
 
-/*********************************************************************
- * This function returns a pointer to the sphere object that the
- * ray intersects first; NULL if no intersection. You should decide
- * which arguments to use for the function. For exmaple, note that you
- * should return the point of intersection to the calling function.
- **********************************************************************/
-Sphere *intersect_scene() {
-//
-// do your thing here
-//
-
-	return nullptr;
-}
 
 /*****************************************************
  * This function adds a sphere into the sphere list
