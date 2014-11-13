@@ -206,6 +206,9 @@ void keyboard(unsigned char key, int x, int y)
 	}
 }
 
+void idle(void) {
+	glutPostRedisplay();
+}
 
 
 //----------------------------------------------------------------------------
@@ -258,6 +261,7 @@ int main( int argc, char **argv )
 
 	glutDisplayFunc( display );
 	glutKeyboardFunc( keyboard );
+	glutIdleFunc(idle);
 	glutMainLoop();
 	return 0;
 }
