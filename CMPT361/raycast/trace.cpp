@@ -70,7 +70,7 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, Sphere *sph) {
 	if (shadow_on && getClosestSphere(q, lm, -1, end) != nullptr) {
 		indirect = true;
 	}
-	Vector r = vec_reflect(v, norm);
+	Vector r = vec_reflect(lm, norm);
 	normalize(&v);
 	normalize(&r);
 
