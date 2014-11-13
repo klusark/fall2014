@@ -44,8 +44,8 @@ extern int step_max;
 
 /////////////////////////////////////////////////////////////////////
 
-Sphere *getClosestSphere(const Point &pos, const Vector &ray, Point &end) {
-	float closest = -1;
+Sphere *getClosestSphere(const Point &pos, const Vector &ray, float cutoff, Point &end) {
+	float closest = cutoff;
 	Sphere *sph = nullptr;
 	for (auto *s : scene) {
 		float val = intersect_sphere(pos, ray, s, end);
@@ -67,7 +67,7 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, Sphere *sph) {
 	normalize(&lm);
 	Point end;
 	bool indirect = false;
-	if (shadow_on && getClosestSphere(q, lm, end) != nullptr) {
+	if (shadow_on && getClosestSphere(q, lm, -1, end) != nullptr) {
 		indirect = true;
 	}
 	Vector r = vec_reflect(v, norm);
@@ -93,14 +93,41 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, Sphere *sph) {
 	return color;
 }
 
+float getCheckIntersect(const Point &pos, const Vector &ray, Point &p) {
+	Vector n = {0,1,-1};
+	normalize(&n);
+	float denom = vec_dot(n, ray);
+	if (denom > 0.0001) {
+		Point p2 = {0,0,3};
+		Vector p0 = get_vec(p2, pos);
+		float t = vec_dot(p0, n) / denom;
+		if (t >= 0) {
+			return t;
+		}
+	}
+	return -1;
+}
+
 /************************************************************************
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
-	Point end;
-	Sphere *s = getClosestSphere(pos, ray, end);
+	Point end, check_end;
+	float t = getCheckIntersect(pos, ray, check_end);
+	Sphere *s = getClosestSphere(pos, ray, t, end);
 	if (s == nullptr) {
+		if (t != -1) {
+			Vector sc = ray * t;
+			Point hit = get_point(pos, sc);
+			if (hit.x < 2 && hit.x > -2 && hit.y < 2 && hit.y > -2) {
+				if (((int)((hit.x + 2) * 2)) % 2 == 0) {
+					return {1,0,1};
+				} else {
+					return {0,0,1};
+				}
+			}
+		}
 		return background_clr;
 	}
 	Vector norm = sphere_normal(end, s);
