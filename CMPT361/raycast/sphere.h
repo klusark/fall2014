@@ -5,13 +5,9 @@
  **********************************************************************/
 #include "vector.h"
 
-class Sphere {
-public:
-	Sphere(Point, float, float [], float [], float [], float, float, int);
-	int index;				// identifies a sphere; must be greater than 0
 
-	Point center;
-	float radius;
+class Object {
+public:
 
 	float mat_ambient[3];	// material property used in Phong model
 	float mat_diffuse[3];
@@ -23,6 +19,14 @@ public:
 							 // of a pixel
 
 	float transparency;
+};
+
+class Sphere : public Object {
+public:
+	Sphere(Point, float, float [], float [], float [], float, float, int);
+	int index;
+	Point center;
+	float radius;
 };
 
 // intersect ray with sphere

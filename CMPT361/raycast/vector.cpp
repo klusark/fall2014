@@ -47,6 +47,15 @@ float vec_dot(const Vector &p, const Vector &q) {
 	return p.x * q.x + p.y * q.y + p.z * q.z;
 }
 
+Vector vec_cross(const Vector &a, const Vector &b )
+{
+	Vector v = { a.y * b.z - a.z * b.y,
+		a.z * b.x - a.x * b.z,
+		a.x * b.y - a.y * b.x };
+	return v;
+}
+
+
 //
 // return sum of two vectors
 //

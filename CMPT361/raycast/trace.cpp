@@ -6,6 +6,7 @@
 #include "raycast.h"
 #include "global.h"
 #include "sphere.h"
+#include "model.h"
 
 //
 // Global variables
@@ -42,6 +43,8 @@ extern int antialias_on;
 extern int refract_on;
 extern int step_max;
 
+Model *mod;
+
 /////////////////////////////////////////////////////////////////////
 
 Sphere *getClosestSphere(const Point &pos, const Vector &ray, float cutoff, Point &end) {
@@ -60,7 +63,7 @@ Sphere *getClosestSphere(const Point &pos, const Vector &ray, float cutoff, Poin
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(const Point &q, Vector v, const Vector &norm, Sphere *sph) {
+RGB_float phong(const Point &q, Vector v, const Vector &norm, Object *sph) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);
@@ -116,6 +119,13 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	Point end, check_end;
 	float t = getCheckIntersect(pos, ray, check_end);
 	Sphere *s = getClosestSphere(pos, ray, t, end);
+	Vector o = {pos.x, pos.y, pos.z};
+	Point end3;
+	int intersect = mod->intersect(ray, o, end3);
+	if (intersect != -1) {
+		Vector norm = mod->getNormal(intersect);
+		return phong(end3, ray, norm, mod);
+	}
 	if (s == nullptr) {
 		if (t != -1) {
 			Vector sc = ray * t;
@@ -163,6 +173,8 @@ void ray_trace() {
 	RGB_float ret_color;
 	Point cur_pixel_pos;
 	Vector ray;
+	Model m("chess_pieces/chess_piece.smf");
+	mod = &m;
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;

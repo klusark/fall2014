@@ -160,7 +160,6 @@ void init()
 	glClearColor( 1.0, 1.0, 1.0, 1.0 );
 
 
-	Model m("chess_pieces/bishop.smf");
 }
 
 /*********************************************************
@@ -249,7 +248,7 @@ int main( int argc, char **argv )
 	ray_trace();
 
 	// we want to make sure that intensity values are normalized
-	histogram_normalization();
+	//histogram_normalization();
 
 	// Show the result in glut via texture mapping
 	glutInit( &argc, argv );
