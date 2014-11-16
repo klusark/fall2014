@@ -5,6 +5,12 @@
  **********************************************************************/
 #include "vector.h"
 
+class IntersectionInfo {
+public:
+	IntersectionInfo() : vertex(0) {}
+	Point pos;
+	int vertex;
+};
 
 class Object {
 public:
@@ -19,19 +25,19 @@ public:
 							 // of a pixel
 
 	float transparency;
+
+	virtual float intersect(const Point &, const Vector &, IntersectionInfo &) = 0;
+	virtual Vector getNormal(const IntersectionInfo &) = 0;
 };
 
 class Sphere : public Object {
 public:
 	Sphere(Point, float, float [], float [], float [], float, float, int);
+	virtual float intersect(const Point &, const Vector &, IntersectionInfo &);
+	virtual Vector getNormal(const IntersectionInfo &);
+
 	int index;
 	Point center;
 	float radius;
 };
-
-// intersect ray with sphere
-float intersect_sphere(const Point &, const Vector &, Sphere *, Point &);
-// return the unit normal at a point on sphere
-Vector sphere_normal(const Point &, Sphere *);
-// add a sphere to the sphere list
 

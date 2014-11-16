@@ -43,15 +43,13 @@ extern int antialias_on;
 extern int refract_on;
 extern int step_max;
 
-Model *mod;
-
 /////////////////////////////////////////////////////////////////////
 
-Sphere *getClosestSphere(const Point &pos, const Vector &ray, float cutoff, Point &end) {
-	float closest = cutoff;
-	Sphere *sph = nullptr;
+Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &end) {
+	float closest = -1;
+	Object *sph = nullptr;
 	for (auto *s : scene) {
-		float val = intersect_sphere(pos, ray, s, end);
+		float val = s->intersect(pos, ray, end);
 		if (val != -1 && (closest == -1 || val < closest)) {
 			closest = val;
 			sph = s;
@@ -68,9 +66,9 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, Object *sph) {
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);
 	normalize(&lm);
-	Point end;
+	IntersectionInfo end;
 	bool indirect = false;
-	if (shadow_on && getClosestSphere(q, lm, -1, end) != nullptr) {
+	if (shadow_on && getClosestObject(q, lm, end) != nullptr) {
 		indirect = true;
 	}
 	Vector r = vec_reflect(lm, norm);
@@ -116,18 +114,17 @@ float getCheckIntersect(const Point &pos, const Vector &ray, Point &p) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
-	Point end, check_end;
-	float t = getCheckIntersect(pos, ray, check_end);
-	Sphere *s = getClosestSphere(pos, ray, t, end);
-	Vector o = {pos.x, pos.y, pos.z};
-	Point end3;
-	int intersect = mod->intersect(ray, o, end3);
+	IntersectionInfo end;
+	Object *s = getClosestObject(pos, ray, end);
+/*	int intersect = mod->intersect(ray, o, end3);
 	if (intersect != -1) {
 		Vector norm = mod->getNormal(intersect);
 		return phong(end3, ray, norm, mod);
-	}
+	}*/
 	if (s == nullptr) {
-		if (t != -1) {
+		return background_clr;
+	}
+/*		if (t != -1) {
 			Vector sc = ray * t;
 			Point hit = get_point(pos, sc);
 			if (hit.x < 2 && hit.x > -2 && hit.y < 2 && hit.y > -2) {
@@ -139,17 +136,17 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 			}
 		}
 		return background_clr;
-	}
-	Vector norm = sphere_normal(end, s);
-	RGB_float color = phong(end, ray, norm, s);
+	}*/
+	Vector norm = s->getNormal(end);
+	RGB_float color = phong(end.pos, ray, norm, s);
 	if (num <= step_max) {
 		Vector h = vec_reflect(ray, norm);
-		RGB_float ref = recursive_ray_trace(end, h, num + 1);
+		RGB_float ref = recursive_ray_trace(end.pos, h, num + 1);
 		color += (ref * s->reflectance);
 
 		if (refract_on) {
 			h = vec_refract(ray, norm);
-			ref = recursive_ray_trace(end, h, num + 1);
+			ref = recursive_ray_trace(end.pos, h, num + 1);
 			color += (ref * s->transparency);
 		}
 	}
@@ -174,7 +171,7 @@ void ray_trace() {
 	Point cur_pixel_pos;
 	Vector ray;
 	Model m("chess_pieces/chess_piece.smf");
-	mod = &m;
+	scene.push_back(&m);
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;

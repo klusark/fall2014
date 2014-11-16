@@ -51,7 +51,8 @@ Model::Model(const std::string &filename) {
 }
 
 // Moller-Trumbore intersection
-int Model::intersect(const Vector &ray, const Vector &o, Point &out) {
+float Model::intersect(const Point &r, const Vector &o, IntersectionInfo &out) {
+	Vector ray = {r.x, r.y, r.z};
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
 		const Face &f = _faces[i];
@@ -86,15 +87,16 @@ int Model::intersect(const Vector &ray, const Vector &o, Point &out) {
 		float t2 = vec_dot(e2, q) * inv_det;
 		if (t2 > 0.0001f) {
 			Vector sc = ray * t2;
-			out.x = o.x + sc.x;
-			out.y = o.y + sc.y;
-			out.z = o.z + sc.z;
+			out.pos.x = o.x + sc.x;
+			out.pos.y = o.y + sc.y;
+			out.pos.z = o.z + sc.z;
+			out.vertex = i;
 			return i;
 		}
 	}
 	return -1;
 }
 
-Vector Model::getNormal(int i) {
-	return _faces[i].norm;
+Vector Model::getNormal(const IntersectionInfo &info) {
+	return _faces[info.vertex].norm;
 }

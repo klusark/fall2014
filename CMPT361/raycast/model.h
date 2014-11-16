@@ -15,8 +15,8 @@ struct Face {
 class Model : public Object {
 public:
 	Model(const std::string &filename);
-	int intersect(const Vector &ray, const Vector &o, Point &out);
-	Vector getNormal(int);
+	float intersect(const Point &ray, const Vector &o, IntersectionInfo &out);
+	Vector getNormal(const IntersectionInfo &);
 private:
 	std::vector<Vector> _vertices;
 	std::vector<Face> _faces;
