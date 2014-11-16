@@ -43,16 +43,20 @@ extern int antialias_on;
 extern int refract_on;
 extern int step_max;
 
+int cuttoff = 100000;
+
 /////////////////////////////////////////////////////////////////////
 
 Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &end) {
 	float closest = -1;
 	Object *sph = nullptr;
+	IntersectionInfo info;
 	for (auto *s : scene) {
-		float val = s->intersect(pos, ray, end);
-		if (val != -1 && (closest == -1 || val < closest)) {
+		float val = s->intersect(pos, ray, info);
+		if (val != -1 && (closest == -1 || val < closest) && val < cuttoff) {
 			closest = val;
 			sph = s;
+			end = info;
 		}
 	}
 	return sph;
@@ -124,6 +128,7 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	if (s == nullptr) {
 		return background_clr;
 	}
+
 /*		if (t != -1) {
 			Vector sc = ray * t;
 			Point hit = get_point(pos, sc);
@@ -171,7 +176,7 @@ void ray_trace() {
 	Point cur_pixel_pos;
 	Vector ray;
 	Model m("chess_pieces/chess_piece.smf");
-	scene.push_back(&m);
+	//scene.push_back(&m);
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
@@ -180,11 +185,12 @@ void ray_trace() {
 
 	for (i=0; i<win_height; i++) {
 		for (j=0; j<win_width; j++) {
-			//ray = get_vec(eye_pos, cur_pixel_pos);
+			ray = get_vec(eye_pos, cur_pixel_pos);
+			normalize(&ray);
 
-			ray.x = 0;
+			/*ray.x = 0;
 			ray.y = 0;
-			ray.z = -1.0;
+			ray.z = -1.0;*/
 			RGB_float colors[5];
 			colors[0] = recursive_ray_trace(cur_pixel_pos, ray, 1);
 

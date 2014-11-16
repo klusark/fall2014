@@ -9,5 +9,6 @@ public:
 	virtual float intersect(const Point &, const Vector &, IntersectionInfo &);
 	virtual Vector getNormal(const IntersectionInfo &);
 
+	Vector normal;
 };
 

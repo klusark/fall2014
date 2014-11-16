@@ -93,11 +93,11 @@ void set_up_user_scene() {
 	scene[1]->transparency = 0.1;
 	scene[2]->transparency = 0.9;
 
-	float sphere3_ambient[] = {0.2, 0.2, 0.2};
-	float sphere3_diffuse[] = {0.0, 1.0, 0.25};
-	float sphere3_specular[] = {0.0, 1.0, 0.0};
-	float sphere3_shineness = 30;
-	float sphere3_reflectance = 0.3;
+	float sphere3_ambient[] = {0.9, 0.0, 1};
+	float sphere3_diffuse[] = {1, 0, 0.25};
+	float sphere3_specular[] = {0, 0, 0};
+	float sphere3_shineness = 0;
+	float sphere3_reflectance = 0;
 	scene.push_back(new Plane( sphere3_ambient,
 						 sphere3_diffuse, sphere3_specular, sphere3_shineness,
 				 sphere3_reflectance));
