@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "sphere.h"
+#include "plane.h"
 #include "raycast.h"
 
 extern Point light1;
@@ -91,4 +92,13 @@ void set_up_user_scene() {
 	scene[0]->transparency = 0.5;
 	scene[1]->transparency = 0.1;
 	scene[2]->transparency = 0.9;
+
+	float sphere3_ambient[] = {0.2, 0.2, 0.2};
+	float sphere3_diffuse[] = {0.0, 1.0, 0.25};
+	float sphere3_specular[] = {0.0, 1.0, 0.0};
+	float sphere3_shineness = 30;
+	float sphere3_reflectance = 0.3;
+	scene.push_back(new Plane( sphere3_ambient,
+						 sphere3_diffuse, sphere3_specular, sphere3_shineness,
+				 sphere3_reflectance));
 }
