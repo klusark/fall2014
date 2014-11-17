@@ -34,7 +34,7 @@ EXECUTABLE= raycast
 # to your program here 
 
 # Linux (default)
-LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm
+LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -std=c++11
 
 # If you have other library files in a different directory add them here 
 INCLUDEFLAG= -I. -I$(INCLUDEDIR) -Iinclude/
@@ -48,7 +48,7 @@ all: $(OBJECT) depend
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) $(LIBFLAG)  $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
 
 depend:
-	$(CC) -M $(SOURCE) > depend
+	$(CC) -M $(SOURCE) -std=c++11 > depend
 
 $(OBJECT):
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) -c -o $@ $(@:.o=.cpp)

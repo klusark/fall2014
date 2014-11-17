@@ -2,6 +2,9 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <cstdio>
+#include <thread>
+#include <queue>
+#include <mutex>
 
 #include "raycast.h"
 #include "global.h"
@@ -160,6 +163,85 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 
 extern int polycompare;
 
+void rayThread(int i, int j, Point cur_pixel_pos, Vector ray, float x_grid_size, float y_grid_size) {
+	RGB_float ret_color;
+	RGB_float colors[5];
+	colors[0] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+	if (antialias_on) {
+		cur_pixel_pos.x += x_grid_size / 2;
+		cur_pixel_pos.y += y_grid_size / 2;
+		colors[1] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+		cur_pixel_pos.y -= y_grid_size;
+		colors[2] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+		cur_pixel_pos.x -= x_grid_size;
+		colors[3] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+		cur_pixel_pos.y += y_grid_size;
+		colors[4] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+
+		cur_pixel_pos.y -= y_grid_size / 2;
+		cur_pixel_pos.x += x_grid_size / 2;
+
+		ret_color = {0,0,0};
+		for (int i = 0; i < 5; ++i) {
+			ret_color += colors[i];
+		}
+		ret_color /= 5;
+	} else {
+		ret_color = colors[0];
+	}
+
+	frame[i][j][0] = GLfloat(ret_color.r);
+	frame[i][j][1] = GLfloat(ret_color.g);
+	frame[i][j][2] = GLfloat(ret_color.b);
+}
+
+struct RayData {
+	int i;
+	int j;
+	Point cur_pixel_pos;
+	Vector ray;
+	float x_grid_size;
+	float y_grid_size;
+};
+
+std::queue<RayData> queue;
+std::mutex queue_mutex;
+
+void workThread() {
+	while (1) {
+		queue_mutex.lock();
+		if (queue.size() == 0) {
+			queue_mutex.unlock();
+			continue;
+		}
+
+		RayData d = queue.front();
+		queue.pop();
+		queue_mutex.unlock();
+		rayThread(d.i, d.j, d.cur_pixel_pos, d.ray, d.x_grid_size, d.y_grid_size);
+	}
+}
+
+std::vector<std::thread> threads;
+
+void queueRay(int i, int j, Point cur_pixel_pos, Vector ray, float x_grid_size, float y_grid_size) {
+	RayData d;
+	d.i = i;
+	d.j = j;
+	d.cur_pixel_pos = cur_pixel_pos;
+	d.ray = ray;
+	d.x_grid_size = x_grid_size;
+	d.y_grid_size = y_grid_size;
+
+	queue_mutex.lock();
+	queue.push(d);
+	queue_mutex.unlock();
+}
+
 /*********************************************************************
  * This function traverses all the pixels and cast rays. It calls the
  * recursive ray tracer and assign return color to frame
@@ -174,10 +256,14 @@ void ray_trace() {
 	float y_grid_size = image_height / float(win_height);
 	float x_start = -0.5 * image_width;
 	float y_start = -0.5 * image_height;
-	RGB_float ret_color;
 	Point cur_pixel_pos;
 	Vector ray;
 	Model m("chess_pieces/chess_piece.smf");
+	scene.push_back(&m);
+	scene.push_back(&m);
+	scene.push_back(&m);
+	scene.push_back(&m);
+	scene.push_back(&m);
 	scene.push_back(&m);
 
 	// ray is cast through center of pixel
@@ -185,46 +271,19 @@ void ray_trace() {
 	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
 	cur_pixel_pos.z = image_plane;
 
+	for (int i = 0; i < 8; ++i) {
+		std::thread t(workThread);
+		threads.push_back(std::move(t));
+	}
+
 	for (i=0; i<win_height; i++) {
 		for (j=0; j<win_width; j++) {
 			ray = get_vec(eye_pos, cur_pixel_pos);
 			normalize(&ray);
 
-			/*ray.x = 0;
-			ray.y = 0;
-			ray.z = -1.0;*/
-			RGB_float colors[5];
-			colors[0] = recursive_ray_trace(cur_pixel_pos, ray, 1);
+			queueRay(i, j, cur_pixel_pos, ray, x_grid_size, y_grid_size);
 
-			if (antialias_on) {
-				cur_pixel_pos.x += x_grid_size / 2;
-				cur_pixel_pos.y += y_grid_size / 2;
-				colors[1] = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-				cur_pixel_pos.y -= y_grid_size;
-				colors[2] = recursive_ray_trace(cur_pixel_pos, ray, 1);
-
-				cur_pixel_pos.x -= x_grid_size;
-				colors[3] = recursive_ray_trace(cur_pixel_pos, ray, 1);
-
-				cur_pixel_pos.y += y_grid_size;
-				colors[4] = recursive_ray_trace(cur_pixel_pos, ray, 1);
-
-				cur_pixel_pos.y -= y_grid_size / 2;
-				cur_pixel_pos.x += x_grid_size / 2;
-
-				ret_color = {0,0,0};
-				for (int i = 0; i < 5; ++i) {
-					ret_color += colors[i];
-				}
-				ret_color /= 5;
-			} else {
-				ret_color = colors[0];
-			}
-
-			frame[i][j][0] = GLfloat(ret_color.r);
-			frame[i][j][1] = GLfloat(ret_color.g);
-			frame[i][j][2] = GLfloat(ret_color.b);
 
 			cur_pixel_pos.x += x_grid_size;
 		}
@@ -232,5 +291,12 @@ void ray_trace() {
 		cur_pixel_pos.y += y_grid_size;
 		cur_pixel_pos.x = x_start;
 	}
+	printf("Done queue\n");
+	queue_mutex.lock();
+	while (queue.size() != 0) {
+		queue_mutex.unlock();
+		queue_mutex.lock();
+	}
+	queue_mutex.unlock();
 	printf("%d\n", polycompare);
 }
