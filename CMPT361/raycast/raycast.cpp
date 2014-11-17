@@ -85,6 +85,7 @@ int shadow_on = 0;
 int antialias_on = 0;
 int refract_on = 0;
 int check_on = 0;
+int save_on = 0;
 
 
 // OpenGL
@@ -236,6 +237,7 @@ int main( int argc, char **argv )
 		if (strcmp(argv[i], "+p") == 0)	antialias_on = 1;
 		if (strcmp(argv[i], "+r") == 0)	refract_on = 1;
 		if (strcmp(argv[i], "+c") == 0)	check_on = 1;
+		if (strcmp(argv[i], "+n") == 0)	save_on = 1;
 	}
 
 	//
@@ -247,6 +249,10 @@ int main( int argc, char **argv )
 	printf("Rendering scene using my fantastic ray tracer ...\n");
 	ray_trace();
 
+	if (save_on) {
+		save_image();
+		return 0;
+	}
 	// we want to make sure that intensity values are normalized
 	//histogram_normalization();
 
