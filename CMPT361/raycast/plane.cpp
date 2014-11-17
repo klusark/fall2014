@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <algorithm>
 
-float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hit) {
+float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hit) const {
 	Vector n = normal;
 	float denom = vec_dot(n, ray);
 	if (fabs(denom) > 0.001) {
@@ -43,6 +43,6 @@ Plane::Plane(float amb[],
 /******************************************
  * computes a sphere normal - done for you
  ******************************************/
-Vector Plane::getNormal(const IntersectionInfo &info) {
+Vector Plane::getNormal(const IntersectionInfo &info) const {
 	return normal;
 }

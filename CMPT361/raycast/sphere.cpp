@@ -14,7 +14,7 @@
  * If there is an intersection, the point of intersection should be
  * stored in the "hit" variable
  **********************************************************************/
-float Sphere::intersect(const Point &o, const Vector &u, IntersectionInfo &hit) {
+float Sphere::intersect(const Point &o, const Vector &u, IntersectionInfo &hit) const {
 	Vector oc = get_vec(center, o);
 
 	float loc = vec_dot(u, oc);
@@ -67,7 +67,7 @@ Sphere::Sphere(Point ctr, float rad, float amb[],
 /******************************************
  * computes a sphere normal - done for you
  ******************************************/
-Vector Sphere::getNormal(const IntersectionInfo &info) {
+Vector Sphere::getNormal(const IntersectionInfo &info) const {
 	Vector rc;
 
 	rc = get_vec(center, info.pos);

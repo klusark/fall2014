@@ -71,7 +71,7 @@ Model::Model(const std::string &filename) : bbtop({0,0,0}), bbbottom({0,0,0}) {
 }
 int polycompare = 0;
 // Moller-Trumbore intersection
-float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out) {
+float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out) const {
 
 	Vector o = {r.x, r.y, r.z};
 	Vector t1 = bbbottom - o;
@@ -146,6 +146,6 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 	return -1;
 }
 
-Vector Model::getNormal(const IntersectionInfo &info) {
+Vector Model::getNormal(const IntersectionInfo &info) const {
 	return _faces[info.vertex].norm;
 }

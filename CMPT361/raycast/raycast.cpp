@@ -206,8 +206,28 @@ void keyboard(unsigned char key, int x, int y)
 	}
 }
 
+int timeElapsed = 0;
+int timeSinceDisplay = 0;
 void idle(void) {
-	glutPostRedisplay();
+	int newtime = glutGet(GLUT_ELAPSED_TIME);
+	int frametime = newtime - timeElapsed;
+	timeSinceDisplay += frametime;
+	if (timeSinceDisplay > 50) {
+		timeSinceDisplay = 0;
+		GLuint texture;
+		glGenTextures( 1, &texture );
+
+		glBindTexture( GL_TEXTURE_2D, texture );
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, WIN_WIDTH, WIN_HEIGHT, 0,
+			GL_RGB, GL_FLOAT, frame );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		glActiveTexture( GL_TEXTURE0 );
+		glutPostRedisplay();
+	}
+	timeElapsed = newtime;
 }
 
 

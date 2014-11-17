@@ -5,6 +5,7 @@
 #include <thread>
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 
 #include "raycast.h"
 #include "global.h"
@@ -50,11 +51,11 @@ int cuttoff = 100000;
 
 /////////////////////////////////////////////////////////////////////
 
-Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &end) {
+const Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &end) {
 	float closest = -1;
-	Object *sph = nullptr;
+	const Object *sph = nullptr;
 	IntersectionInfo info;
-	for (auto *s : scene) {
+	for (const auto *s : scene) {
 		float val = s->intersect(pos, ray, info);
 		if (val != -1 && (closest == -1 || val < closest) && val < cuttoff) {
 			closest = val;
@@ -68,7 +69,7 @@ Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &
 /*********************************************************************
  * Phong illumination - you need to implement this!
  *********************************************************************/
-RGB_float phong(const Point &q, Vector v, const Vector &norm, Object *sph) {
+RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
 	float dist = vec_len(lm);
@@ -122,7 +123,7 @@ float getCheckIntersect(const Point &pos, const Vector &ray, Point &p) {
  ************************************************************************/
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	IntersectionInfo end;
-	Object *s = getClosestObject(pos, ray, end);
+	const Object *s = getClosestObject(pos, ray, end);
 /*	int intersect = mod->intersect(ray, o, end3);
 	if (intersect != -1) {
 		Vector norm = mod->getNormal(intersect);
@@ -210,8 +211,13 @@ struct RayData {
 
 std::queue<RayData> queue;
 std::mutex queue_mutex;
+std::condition_variable queue_condition;
 
 void workThread() {
+	{
+		std::unique_lock<std::mutex> lock(queue_mutex);
+		queue_condition.wait(lock);
+	}
 	while (1) {
 		queue_mutex.lock();
 		if (queue.size() == 0) {
@@ -258,20 +264,19 @@ void ray_trace() {
 	float y_start = -0.5 * image_height;
 	Point cur_pixel_pos;
 	Vector ray;
-	Model m("chess_pieces/chess_piece.smf");
-	scene.push_back(&m);
-	scene.push_back(&m);
-	scene.push_back(&m);
-	scene.push_back(&m);
-	scene.push_back(&m);
-	scene.push_back(&m);
+	Model *m = new Model("chess_pieces/chess_piece.smf");
+	scene.push_back(m);
+	scene.push_back(m);
+	scene.push_back(m);
+	scene.push_back(m);
+	scene.push_back(m);
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
 	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
 	cur_pixel_pos.z = image_plane;
 
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < 4; ++i) {
 		std::thread t(workThread);
 		threads.push_back(std::move(t));
 	}
@@ -291,12 +296,7 @@ void ray_trace() {
 		cur_pixel_pos.y += y_grid_size;
 		cur_pixel_pos.x = x_start;
 	}
+	queue_condition.notify_all();
 	printf("Done queue\n");
-	queue_mutex.lock();
-	while (queue.size() != 0) {
-		queue_mutex.unlock();
-		queue_mutex.lock();
-	}
-	queue_mutex.unlock();
 	printf("%d\n", polycompare);
 }

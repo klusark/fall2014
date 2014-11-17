@@ -26,15 +26,15 @@ public:
 
 	float transparency;
 
-	virtual float intersect(const Point &, const Vector &, IntersectionInfo &) = 0;
-	virtual Vector getNormal(const IntersectionInfo &) = 0;
+	virtual float intersect(const Point &, const Vector &, IntersectionInfo &) const = 0;
+	virtual Vector getNormal(const IntersectionInfo &) const = 0;
 };
 
 class Sphere : public Object {
 public:
 	Sphere(Point, float, float [], float [], float [], float, float, int);
-	virtual float intersect(const Point &, const Vector &, IntersectionInfo &);
-	virtual Vector getNormal(const IntersectionInfo &);
+	virtual float intersect(const Point &, const Vector &, IntersectionInfo &) const;
+	virtual Vector getNormal(const IntersectionInfo &) const;
 
 	int index;
 	Point center;
