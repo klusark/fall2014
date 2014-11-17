@@ -158,6 +158,8 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	return color;
 }
 
+extern int polycompare;
+
 /*********************************************************************
  * This function traverses all the pixels and cast rays. It calls the
  * recursive ray tracer and assign return color to frame
@@ -176,7 +178,7 @@ void ray_trace() {
 	Point cur_pixel_pos;
 	Vector ray;
 	Model m("chess_pieces/chess_piece.smf");
-	//scene.push_back(&m);
+	scene.push_back(&m);
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
@@ -230,4 +232,5 @@ void ray_trace() {
 		cur_pixel_pos.y += y_grid_size;
 		cur_pixel_pos.x = x_start;
 	}
+	printf("%d\n", polycompare);
 }

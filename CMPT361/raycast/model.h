@@ -20,4 +20,6 @@ public:
 private:
 	std::vector<Vector> _vertices;
 	std::vector<Face> _faces;
+	Vector bbtop;
+	Vector bbbottom;
 };

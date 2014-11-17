@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cmath>
 
-Model::Model(const std::string &filename) {
+Model::Model(const std::string &filename) : bbtop({0,0,0}), bbbottom({0,0,0}) {
 	FILE *f = fopen(filename.c_str(), "r");
 
 	int verts, faces;
@@ -11,7 +11,27 @@ Model::Model(const std::string &filename) {
 	for (int i = 0; i < verts; ++i) {
 		float x,y,z;
 		fscanf(f, "v %f %f %f\n", &x, &y, &z);
-		_vertices.push_back({x,y,z-8});
+		z -= 2;
+		if (x > bbtop.x) {
+			bbtop.x = x;
+		}
+		if (y > bbtop.y) {
+			bbtop.y = y;
+		}
+		if (z > bbtop.z) {
+			bbtop.z = z;
+		}
+		if (x < bbbottom.x) {
+			bbbottom.x = x;
+		}
+		if (y < bbbottom.y) {
+			bbbottom.y = y;
+		}
+		if (z < bbbottom.z) {
+			bbbottom.z = z;
+		}
+
+		_vertices.push_back({x,y,z});
 	}
 
 	for (int i = 0; i < faces; ++i) {
@@ -49,12 +69,41 @@ Model::Model(const std::string &filename) {
 	mat_shineness = 30;
 	reflectance = 0.3;
 }
-
+int polycompare = 0;
 // Moller-Trumbore intersection
-float Model::intersect(const Point &r, const Vector &o, IntersectionInfo &out) {
-	Vector ray = {r.x, r.y, r.z};
+float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out) {
+
+	Vector o = {r.x, r.y, r.z};
+	Vector t1 = bbbottom - o;
+	Vector t2 = bbtop - o;
+
+	float tx1 = t1.x*ray.x;
+	float tx2 = t2.x*ray.x;
+
+	float tmin = std::min(tx1, tx2);
+	float tmax = std::max(tx1, tx2);
+
+	float ty1 = t1.y*ray.y;
+	float ty2 = t2.y*ray.y;
+
+	tmin = std::max(tmin, std::min(ty1, ty2));
+	tmax = std::min(tmax, std::max(ty1, ty2));
+
+	float tz1 = t1.z*ray.z;
+	float tz2 = t2.z*ray.z;
+
+	tmin = std::max(tmin, std::min(tz1, tz2));
+	tmax = std::min(tmax, std::max(tz1, tz2));
+
+
+	if (tmax <= tmin) {
+		return -1;
+	}
+
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
+
+		++polycompare;
 		const Face &f = _faces[i];
 		Vector v1 = _vertices[f.x];
 		Vector v2 = _vertices[f.y];
