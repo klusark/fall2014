@@ -7,15 +7,12 @@
 float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hit) {
 	Vector n = normal;
 	float denom = vec_dot(n, ray);
-	//printf("%f %f %f %f\n", ray.x, ray.y, ray.z, denom);
 	if (fabs(denom) > 0.001) {
 		Vector p2 = {0,-3,0};
 		Vector p = {pos.x, pos.y, pos.z};
 		Vector p0 = p2 - p;
 		float t = vec_dot(p0, n) / denom;
-		//printf("Hit 1 %f\n", t);
 		if (t >= 0) {
-			//printf("Hit\n");
 			Vector sc = ray * t;
 			hit.pos = get_point(pos, sc);
 			hit.vertex = 5555;
