@@ -28,6 +28,7 @@ std::string outDir = "";
 bool _endThreads = false;
 sqlite3 *_db;
 sqlite3_stmt *_transaction_stmt, *_update_stmt, *_write_stmt, *_delete_stmt;
+bool isMaster = false;
 
 enum SQLType {
 	SQLInsert,
@@ -316,6 +317,7 @@ void Client::readThread() {
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
+		std::cout << buff << std::endl;
 		if (len <= 0) {
 			if (!_endThreads && _connected && errno == EAGAIN) {
 				++counter;
@@ -653,6 +655,103 @@ void workThread(int threadid) {
 	}
 }
 
+std::string port = "8080";
+std::string address = "127.0.0.1";
+
+void runMaster() {
+	addrinfo hints;
+	addrinfo *addr = nullptr;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if (getaddrinfo(address.c_str(), port.c_str(), &hints, &addr) < 0) {
+		std::cerr << "Could not get address: " << address << std::endl;
+		return;
+	}
+
+	bindfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	if (bindfd < 0) {
+		std::cerr << "Could not create socket" << std::endl;
+		return;
+	}
+
+	if (bind(bindfd, addr->ai_addr, addr->ai_addrlen) < 0) {
+		std::cerr << "Could not bind to port: " << port << std::endl;
+		return;
+	}
+
+	while (1) {
+		int ret = listen(bindfd, 100);
+		if (ret < 0) {
+			std::cerr << "Listen error: " << ret << std::endl;
+			return;
+		}
+		socklen_t len = 0;
+		sockaddr_in addr;
+		int fd = accept(bindfd, (sockaddr *)&addr, &len);
+		if (fd <= 0) {
+			std::cerr << "Accept error: " << fd << std::endl;
+			break;
+		}
+		{
+			std::lock_guard<std::mutex> lock(workMutex);
+			workQueue.push(fd);
+			workCondition.notify_one();
+		}
+	}
+	cleanup();
+}
+int backupfd = 0;
+
+bool connectToMaster() {
+	addrinfo hints;
+	addrinfo *addr = nullptr;
+
+	std::string masterAddress = "127.0.0.1";
+	std::string masterPort = "8001";
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if (getaddrinfo(masterAddress.c_str(), masterPort.c_str(), &hints, &addr) < 0) {
+		std::cerr << "Could not get address: " << address << std::endl;
+		return false;
+	}
+
+	backupfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	if (backupfd < 0) {
+		std::cerr << "Could not create socket" << std::endl;
+		return false;
+	}
+
+	int ret = connect(backupfd, addr->ai_addr, addr->ai_addrlen);
+	if (ret < 0) {
+		std::cerr << "Could not connect" << std::endl;
+		return false;
+	}
+
+	const char *message = "BACKUP 0 0 0\r\n\r\n\r\n";
+	write(backupfd, message, strlen(message));
+
+	return true;
+}
+
+void runBackup() {
+	char buff[1024];
+	while (1) {
+		size_t len = read(backupfd, buff, 1024);
+		if (len < 0) {
+			break;
+		}
+		buff[len] = 0;
+		std::cout << buff << std::endl;
+	}
+	cleanup();
+}
+
 void usage(const char *name) {
 	std::cerr <<
 				"Usage: " << name << " [OPTIONS]" << std::endl <<
@@ -663,8 +762,6 @@ void usage(const char *name) {
 }
 
 int main(int argc, char *argv[]) {
-	std::string port = "8080";
-	std::string address = "127.0.0.1";
 	for (int i = 1; i < argc - 1; ++i) {
 		std::string arg = argv[i];
 		if (arg == "-dir") {
@@ -745,51 +842,25 @@ int main(int argc, char *argv[]) {
 	}
 	sqlite3_finalize(stmt);
 
-	addrinfo hints;
-	addrinfo *addr = nullptr;
 
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
 
-	if (getaddrinfo(address.c_str(), port.c_str(), &hints, &addr) < 0) {
-		std::cerr << "Could not get address: " << address << std::endl;
-		return 1;
-	}
-
-	bindfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-	if (bindfd < 0) {
-		std::cerr << "Could not create socket" << std::endl;
-		return 1;
-	}
-
-	if (bind(bindfd, addr->ai_addr, addr->ai_addrlen) < 0) {
-		std::cerr << "Could not bind to port: " << port << std::endl;
-		return 1;
+	if (!connectToMaster()) {
+		isMaster = true;
+		std::cout << "we are master" << std::endl;
+	} else {
+		std::cout << "we are backup" << std::endl;
 	}
 
 	for (int i = 0; i < 32; ++i) {
 		_workers.push_back(std::thread(workThread, i));
 	}
 	_sqlThread = std::thread(SQLThread);
-	while (1) {
-		int ret = listen(bindfd, 100);
-		if (ret < 0) {
-			std::cerr << "Listen error: " << ret << std::endl;
-			return 1;
-		}
-		socklen_t len = 0;
-		sockaddr_in addr;
-		int fd = accept(bindfd, (sockaddr *)&addr, &len);
-		if (fd <= 0) {
-			std::cerr << "Accept error: " << fd << std::endl;
-			break;
-		}
-		{
-			std::lock_guard<std::mutex> lock(workMutex);
-			workQueue.push(fd);
-			workCondition.notify_one();
-		}
+
+	if (isMaster) {
+		runMaster();
+	} else {
+		runBackup();
 	}
-	cleanup();
 }
+
+
