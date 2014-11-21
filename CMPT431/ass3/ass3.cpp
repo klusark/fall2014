@@ -33,7 +33,7 @@ int backupfd = 0;
 bool backupConnected = false;
 
 enum SQLType {
-	SQLInsert,
+	SQLInsert = 1,
 	SQLUpdate,
 	SQLWrite,
 	SQLDelete,
@@ -289,7 +289,7 @@ void Transaction::writeData(int seqno, const std::string &data) {
 }
 
 bool Transaction::hasWrite(int seqno) {
-	return _writes.find(seqno) == _writes.end();
+	return _writes.find(seqno) != _writes.end();
 }
 
 class Client {
@@ -370,6 +370,24 @@ void Client::readThread() {
 	}
 }
 
+Transaction *createTransaction(const std::string &filename, int id = -1) {
+	bool create = false;
+	if (id == -1) {
+		create = true;
+	}
+	Transaction *t = new Transaction(filename, create);
+	if (!create) {
+		t->_id = id;
+	}
+	File *f = File::getFile(filename, true);
+	t->_file = f;
+	f->_mutex.unlock();
+	_transaction_mutex.lock();
+	_transactions[t->getId()] = t;
+	_transaction_mutex.unlock();
+	return t;
+}
+
 void Client::parseMessage(const char *data) {
 	std::stringstream l(data);
 	std::string method;
@@ -448,13 +466,7 @@ void Client::parseMessage(const char *data) {
 		if (_data.size() == 0 || seqno != 0) {
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			Transaction *t = new Transaction(_data);
-			File *f = File::getFile(_data, true);
-			t->_file = f;
-			f->_mutex.unlock();
-			_transaction_mutex.lock();
-			_transactions[t->getId()] = t;
-			_transaction_mutex.unlock();
+			Transaction *t = createTransaction(_data);
 			respond("ACK", t->getId(), 0, 0);
 		}
 	} else if (method == "WRITE") {
@@ -469,7 +481,7 @@ void Client::parseMessage(const char *data) {
 			t->_mutex.unlock();
 			respond("ERROR", id, seqno, 204, "Wrong message format");
 		} else {
-			if (t->hasWrite(seqno)) {
+			if (!t->hasWrite(seqno)) {
 				t->writeData(seqno, _data);
 				t->_mutex.unlock();
 			} else {
@@ -793,7 +805,20 @@ void runBackup() {
 			if (b->length != 0) {
 				str = buff + sizeof(BackupMessage);
 			}
-			SQLTransaction((SQLType)b->type, b->id, b->other, str);
+			SQLType type = (SQLType)b->type;
+			//SQLTransaction(type, b->id, b->other, str);
+			if (type == SQLInsert) {
+				createTransaction(str, b->id);
+			} else if (type == SQLWrite) {
+				_transaction_mutex.lock();
+				Transaction *t = _transactions[b->id];
+				t->_mutex.lock();
+				_transaction_mutex.unlock();
+				t->writeData(b->other, str);
+				t->_mutex.unlock();
+			} else {
+				std::cout << type << std::endl;
+			}
 			std::cout << "Got message" << std::endl;
 			memmove(buff, buff + messagelen, pos - messagelen);
 			pos -= messagelen;
