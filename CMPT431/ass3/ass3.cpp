@@ -799,7 +799,6 @@ void runBackup() {
 			pos -= messagelen;
 		}
 	}
-	cleanup();
 }
 
 void usage(const char *name) {
@@ -893,25 +892,28 @@ int main(int argc, char *argv[]) {
 	sqlite3_finalize(stmt);
 
 
-
-	if (!connectToMaster()) {
-		isMaster = true;
-		std::cout << "we are master" << std::endl;
-	} else {
-		std::cout << "we are backup" << std::endl;
-	}
-
 	for (int i = 0; i < 32; ++i) {
 		_workers.push_back(std::thread(workThread, i));
 	}
 	_sqlThread = std::thread(SQLThread);
 
-	if (isMaster) {
-		runMaster();
-		cleanup();
-	} else {
-		runBackup();
+	while (1) {
+		isMaster = false;
+		if (!connectToMaster()) {
+			isMaster = true;
+			std::cout << "we are master" << std::endl;
+		} else {
+			std::cout << "we are backup" << std::endl;
+		}
+
+
+		if (isMaster) {
+			runMaster();
+		} else {
+			runBackup();
+		}
 	}
+	cleanup();
 }
 
 
