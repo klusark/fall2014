@@ -34,7 +34,7 @@ EXECUTABLE= raycast
 # to your program here 
 
 # Linux (default)
-LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -std=c++11
+LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -std=c++11 -pthread
 
 # If you have other library files in a different directory add them here 
 INCLUDEFLAG= -I. -I$(INCLUDEDIR) -Iinclude/
