@@ -29,6 +29,8 @@ bool _endThreads = false;
 sqlite3 *_db;
 sqlite3_stmt *_transaction_stmt, *_update_stmt, *_write_stmt, *_delete_stmt;
 bool isMaster = false;
+int backupfd = 0;
+bool backupConnected = false;
 
 enum SQLType {
 	SQLInsert,
@@ -317,7 +319,6 @@ void Client::readThread() {
 	while (_connected) {
 		char buff[256];
 		ssize_t len = read(_fd, buff, 255);
-		std::cout << buff << std::endl;
 		if (len <= 0) {
 			if (!_endThreads && _connected && errno == EAGAIN) {
 				++counter;
@@ -364,7 +365,7 @@ void Client::parseMessage(const char *data) {
 			}
 			if (numspaces != 0) {
 				if (!isdigit(data[i])) {
-					error = true;
+				//	error = true;
 				}
 			} else if (!(isalpha(data[i]) || data[i] == '_')) {
 				error = true;
@@ -434,8 +435,15 @@ void Client::parseMessage(const char *data) {
 			f->_mutex.unlock();
 			_transaction_mutex.lock();
 			_transactions[t->getId()] = t;
+			if (backupConnected) {
+				write(backupfd, data, strlen(data));
+				write(backupfd, "\r\n\r\n", 4);
+				write(backupfd, _data.c_str(), _data.length());
+				std::cout << "nesadfw_txn" << std::endl;
+			}
 			_transaction_mutex.unlock();
 			respond("ACK", t->getId(), 0, 0);
+			std::cout << "new_txn" << std::endl;
 		}
 	} else if (method == "WRITE") {
 		Transaction *t = findTransaction(id, seqno);
@@ -503,6 +511,10 @@ void Client::parseMessage(const char *data) {
 		t->setState(Aborted);
 		t->_mutex.unlock();
 		respond("ACK", id, seqno, 0);
+	} else if (method == "BACKUP") {
+		std::cout << "Backup has arrived" << std::endl;
+		backupfd = _fd;
+		backupConnected = true;
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 		disconnect();
@@ -703,7 +715,6 @@ void runMaster() {
 	}
 	cleanup();
 }
-int backupfd = 0;
 
 bool connectToMaster() {
 	addrinfo hints;
@@ -740,15 +751,9 @@ bool connectToMaster() {
 }
 
 void runBackup() {
-	char buff[1024];
-	while (1) {
-		size_t len = read(backupfd, buff, 1024);
-		if (len < 0) {
-			break;
-		}
-		buff[len] = 0;
-		std::cout << buff << std::endl;
-	}
+	Client c;
+	c._fd = backupfd;
+	c.readThread();
 	cleanup();
 }
 
@@ -858,6 +863,7 @@ int main(int argc, char *argv[]) {
 
 	if (isMaster) {
 		runMaster();
+		cleanup();
 	} else {
 		runBackup();
 	}
