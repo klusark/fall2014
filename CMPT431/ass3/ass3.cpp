@@ -430,9 +430,9 @@ void Client::parseMessage(const char *data) {
 		std::cout << "Get: " << data << std::endl;
 	}
 
-	if (length == 0) {
-		_buffer.erase(_buffer.begin(), _buffer.begin() + 2);
-	}
+	//if (length == 0) {
+	//	_buffer.erase(_buffer.begin(), _buffer.begin() + 2);
+	//}
 
 	// check data
 	if (method == "READ") {
@@ -794,12 +794,13 @@ void runBackup() {
 	BackupMessage *b = (BackupMessage *)buff;
 	int pos = 0;
 	while (1) {
-		size_t len = read(backupfd, buff + pos, 1024 - pos);
+		int len = read(backupfd, buff + pos, 1024 - pos);
 		if (len <= 0) {
 			break;
 		}
 		pos += len;
-		if (pos > sizeof(BackupMessage) && pos > b->length) {
+		std::cout << pos << std::endl;
+		if (pos >= sizeof(BackupMessage) && pos >= b->length + sizeof(BackupMessage)) {
 			int messagelen = sizeof(BackupMessage) + b->length;
 			const char *str = nullptr;
 			if (b->length != 0) {
@@ -816,6 +817,15 @@ void runBackup() {
 				_transaction_mutex.unlock();
 				t->writeData(b->other, str);
 				t->_mutex.unlock();
+			} else if (type == SQLUpdate) {
+				_transaction_mutex.lock();
+				Transaction *t = _transactions[b->id];
+				t->_mutex.lock();
+				_transaction_mutex.unlock();
+				t->write();
+				t->setState(Commited);
+				t->_mutex.unlock();
+				std::cout << "asdf" << std::endl;
 			} else {
 				std::cout << type << std::endl;
 			}
