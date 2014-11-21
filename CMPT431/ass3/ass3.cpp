@@ -681,8 +681,10 @@ void workThread(int threadid) {
 
 std::string port = "8080";
 std::string address = "127.0.0.1";
+std::string primary = "primary.txt";
 
 void runMaster() {
+
 	addrinfo hints;
 	addrinfo *addr = nullptr;
 
@@ -705,6 +707,11 @@ void runMaster() {
 		std::cerr << "Could not bind to port: " << port << std::endl;
 		return;
 	}
+
+	int fd = open(primary.c_str(), O_WRONLY|O_CREAT, 0777);
+	std::string data = address + " " + port;
+	::write(fd, data.c_str(), data.length());
+	close(fd);
 
 	while (1) {
 		int ret = listen(bindfd, 100);
@@ -732,14 +739,22 @@ bool connectToMaster() {
 	addrinfo hints;
 	addrinfo *addr = nullptr;
 
-	std::string masterAddress = "127.0.0.1";
-	std::string masterPort = "8001";
+
+	FILE *f = fopen(primary.c_str(), "r");
+	if (f == nullptr) {
+		return false;
+	}
+	char masterAddress[128];
+	char masterPort[16];
+	fscanf(f, "%s %s", masterAddress, masterPort);
+	fclose(f);
+
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if (getaddrinfo(masterAddress.c_str(), masterPort.c_str(), &hints, &addr) < 0) {
+	if (getaddrinfo(masterAddress, masterPort, &hints, &addr) < 0) {
 		std::cerr << "Could not get address: " << address << std::endl;
 		return false;
 	}
