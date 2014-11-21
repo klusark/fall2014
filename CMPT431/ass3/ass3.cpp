@@ -39,6 +39,14 @@ enum SQLType {
 	SQLDelete,
 };
 
+struct BackupMessage {
+	int type;
+	int id;
+	int other;
+	int length;
+};
+
+
 
 class SQLTransactionData {
 public:
@@ -82,6 +90,17 @@ void SQLTransactionData::commit() {
 		sqlite3_bind_int(_delete_stmt, 1, _id);
 		sqlite3_step(_delete_stmt);
 		sqlite3_reset(_delete_stmt);
+	}
+	if (backupConnected) {
+		BackupMessage b;
+		b.type = _t;
+		b.id = _id;
+		b.other = _other;
+		b.length = _value.length();
+		write(backupfd, &b, sizeof(BackupMessage));
+		if (_value.length() != 0) {
+			write(backupfd, _value.c_str(), _value.length());
+		}
 	}
 }
 
@@ -435,15 +454,8 @@ void Client::parseMessage(const char *data) {
 			f->_mutex.unlock();
 			_transaction_mutex.lock();
 			_transactions[t->getId()] = t;
-			if (backupConnected) {
-				write(backupfd, data, strlen(data));
-				write(backupfd, "\r\n\r\n", 4);
-				write(backupfd, _data.c_str(), _data.length());
-				std::cout << "nesadfw_txn" << std::endl;
-			}
 			_transaction_mutex.unlock();
 			respond("ACK", t->getId(), 0, 0);
-			std::cout << "new_txn" << std::endl;
 		}
 	} else if (method == "WRITE") {
 		Transaction *t = findTransaction(id, seqno);
@@ -751,9 +763,27 @@ bool connectToMaster() {
 }
 
 void runBackup() {
-	Client c;
-	c._fd = backupfd;
-	c.readThread();
+	char buff[1024];
+	BackupMessage *b = (BackupMessage *)buff;
+	int pos = 0;
+	while (1) {
+		size_t len = read(backupfd, buff + pos, 1024 - pos);
+		if (len <= 0) {
+			break;
+		}
+		pos += len;
+		if (pos > sizeof(BackupMessage) && pos > b->length) {
+			int messagelen = sizeof(BackupMessage) + b->length;
+			const char *str = nullptr;
+			if (b->length != 0) {
+				str = buff + sizeof(BackupMessage);
+			}
+			SQLTransaction((SQLType)b->type, b->id, b->other, str);
+			std::cout << "Got message" << std::endl;
+			memmove(buff, buff + messagelen, pos - messagelen);
+			pos -= messagelen;
+		}
+	}
 	cleanup();
 }
 
