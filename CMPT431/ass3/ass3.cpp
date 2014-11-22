@@ -828,9 +828,9 @@ void runBackup() {
 		pos += len;
 		while (pos >= sizeof(BackupMessage) && pos >= b->length + sizeof(BackupMessage)) {
 			int messagelen = sizeof(BackupMessage) + b->length;
-			const char *str = nullptr;
+			std::string str;
 			if (b->length != 0) {
-				str = buff + sizeof(BackupMessage);
+				str = std::string(buff + sizeof(BackupMessage), b->length);
 			}
 			SQLType type = (SQLType)b->type;
 			if (type == SQLInsert) {
