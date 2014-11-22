@@ -56,6 +56,7 @@ public:
 	int _other;
 	SQLType _t;
 	void commit();
+	void sendBackup();
 };
 
 
@@ -65,6 +66,8 @@ SQLTransactionData::SQLTransactionData(SQLType t, int id, int other, const std::
 	_other = other;
 	_value = value;
 }
+
+std::queue<SQLTransactionData> _sqlQueue, _backupQueue;
 
 void SQLTransactionData::commit() {
 	if (_t == SQLInsert) {
@@ -91,20 +94,27 @@ void SQLTransactionData::commit() {
 		sqlite3_step(_delete_stmt);
 		sqlite3_reset(_delete_stmt);
 	}
-	if (backupConnected) {
-		BackupMessage b;
-		b.type = _t;
-		b.id = _id;
-		b.other = _other;
-		b.length = _value.length();
-		write(backupfd, &b, sizeof(BackupMessage));
-		if (_value.length() != 0) {
-			write(backupfd, _value.c_str(), _value.length());
+	if (isMaster) {
+		if (backupConnected) {
+			sendBackup();
+		} else {
+			_backupQueue.push(*this);
 		}
 	}
 }
+void SQLTransactionData::sendBackup() {
+	BackupMessage b;
 
-std::queue<SQLTransactionData> _sqlQueue;
+	b.type = _t;
+	b.id = _id;
+	b.other = _other;
+	b.length = _value.length();
+	write(backupfd, &b, sizeof(BackupMessage));
+	if (_value.length() != 0) {
+		write(backupfd, _value.c_str(), _value.length());
+	}
+}
+
 std::mutex _sqlMutex;
 std::condition_variable _sqlCondition;
 bool _sqlEnd = false;
@@ -124,6 +134,13 @@ void SQLThread() {
 			_sqlCondition.wait(lock);
 			if (_sqlEnd && _sqlQueue.size() == 0) {
 				return;
+			}
+			if (backupConnected && isMaster && _backupQueue.size() != 0) {
+				while (_backupQueue.size() != 0) {
+					SQLTransactionData t = _backupQueue.front();
+					_backupQueue.pop();
+					t.sendBackup();
+				}
 			}
 		}
 		bool begun = false;
@@ -311,12 +328,14 @@ private:
 	std::vector<char> _buffer;
 	std::string _data;
 	bool _connected;
+	bool _isBackup;
 };
 
 
 
 Client::Client() {
 	_connected = true;
+	_isBackup = false;
 	_fd = -1;
 }
 
@@ -324,6 +343,9 @@ Client::~Client() {
 	if (_fd != -1) {
 		shutdown(_fd, SHUT_RDWR);
 		close(_fd);
+	}
+	if (_isBackup) {
+		backupConnected = false;
 	}
 }
 
@@ -539,6 +561,11 @@ void Client::parseMessage(const char *data) {
 		std::cout << "Backup has arrived" << std::endl;
 		backupfd = _fd;
 		backupConnected = true;
+		_isBackup = true;
+		{
+			std::lock_guard<std::mutex> lock(_sqlMutex);
+			_sqlCondition.notify_all();
+		}
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 		disconnect();
@@ -799,15 +826,13 @@ void runBackup() {
 			break;
 		}
 		pos += len;
-		std::cout << pos << std::endl;
-		if (pos >= sizeof(BackupMessage) && pos >= b->length + sizeof(BackupMessage)) {
+		while (pos >= sizeof(BackupMessage) && pos >= b->length + sizeof(BackupMessage)) {
 			int messagelen = sizeof(BackupMessage) + b->length;
 			const char *str = nullptr;
 			if (b->length != 0) {
 				str = buff + sizeof(BackupMessage);
 			}
 			SQLType type = (SQLType)b->type;
-			//SQLTransaction(type, b->id, b->other, str);
 			if (type == SQLInsert) {
 				createTransaction(str, b->id);
 			} else if (type == SQLWrite) {
@@ -825,11 +850,9 @@ void runBackup() {
 				t->write();
 				t->setState(Commited);
 				t->_mutex.unlock();
-				std::cout << "asdf" << std::endl;
 			} else {
 				std::cout << type << std::endl;
 			}
-			std::cout << "Got message" << std::endl;
 			memmove(buff, buff + messagelen, pos - messagelen);
 			pos -= messagelen;
 		}
