@@ -865,6 +865,7 @@ void usage(const char *name) {
 				"  -h\t\tPrint this help" << std::endl <<
 				"  -ip\t\tThe ip address to bind to" << std::endl <<
 				"  -port\t\tThe porn to bind to" << std::endl <<
+				"  -primary\t\tThe primary file" << std::endl <<
 				"  -dir\t\tThe dir with files" << std::endl;
 }
 
@@ -877,6 +878,8 @@ int main(int argc, char *argv[]) {
 			port = argv[i + 1];
 		} else if (arg == "-ip") {
 			address = argv[i + 1];
+		} else if (arg == "-primary") {
+			primary = argv[i + 1];
 		} else if (arg == "-h") {
 			usage(argv[0]);
 			return 1;

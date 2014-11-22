@@ -1,5 +1,7 @@
 Everything should work as described in the assignment.
 
+use -pirmary to specify the primary file location
+
 To build
 
 make
