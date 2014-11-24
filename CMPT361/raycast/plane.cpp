@@ -12,7 +12,7 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 		Vector p = {pos.x, pos.y, pos.z};
 		Vector p0 = p2 - p;
 		float t = vec_dot(p0, n) / denom;
-		if (t >= 0) {
+		if (t >= 0.0001) {
 			Vector sc = ray * t;
 			hit.pos = get_point(pos, sc);
 			hit.vertex = 5555;
