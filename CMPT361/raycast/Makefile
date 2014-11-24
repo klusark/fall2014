@@ -10,17 +10,11 @@
 # Originated in 2001 by Haris Teguh
 # modified May-2012 by Honghua Li
 
-# Including of non standard library files:
-#   INCLUDEDIR is where the header files can be found
-#   LIBDIR is where the library object files can be found
-INCLUDEDIR=/usr/include/
-LIBDIR=/usr/lib
-
 # If you have more source files add them here 
 SOURCE= scene.cpp image_util.cpp sphere.cpp vector.cpp trace.cpp raycast.cpp model.cpp plane.cpp include/InitShader.cpp
 
 # The compiler we are using 
-CC= g++
+CXX= g++
 
 # The flags that will be used to compile the object file.
 # If you want to debug your program,
@@ -37,21 +31,20 @@ EXECUTABLE= raycast
 LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -std=c++11 -pthread
 
 # If you have other library files in a different directory add them here 
-INCLUDEFLAG= -I. -I$(INCLUDEDIR) -Iinclude/
-LIBFLAG= -L$(LIBDIR)
+INCLUDEFLAG= -I. -Iinclude/
 
 # Don't touch this one if you don't know what you're doing 
 OBJECT= $(SOURCE:.cpp=.o)
 
 # Don't touch any of these either if you don't know what you're doing 
 all: $(OBJECT) depend
-	$(CC) $(CFLAGS) $(INCLUDEFLAG) $(LIBFLAG)  $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
+	$(CXX) $(CFLAGS) $(INCLUDEFLAG) $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
 
 depend:
-	$(CC) -M $(SOURCE) -std=c++11 > depend
+	$(CXX) -M $(SOURCE) -std=c++11 > depend
 
 $(OBJECT):
-	$(CC) $(CFLAGS) $(INCLUDEFLAG) -c -o $@ $(@:.o=.cpp)
+	$(CXX) $(CFLAGS) $(INCLUDEFLAG) -c -o $@ $(@:.o=.cpp)
 
 clean_object:
 	rm -f $(OBJECT)
