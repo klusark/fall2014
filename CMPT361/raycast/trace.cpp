@@ -219,7 +219,7 @@ void workThread() {
 		queue_mutex.lock();
 		if (queue.size() == 0) {
 			queue_mutex.unlock();
-			continue;
+			break;
 		}
 
 		RayData d = queue.front();
