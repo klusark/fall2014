@@ -12,35 +12,6 @@
 #include "sphere.h"
 #include "model.h"
 
-//
-// Global variables
-//
-extern int win_width;
-extern int win_height;
-
-extern GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
-
-extern float image_width;
-extern float image_height;
-
-extern Point eye_pos;
-extern float image_plane;
-extern RGB_float background_clr;
-extern RGB_float null_clr;
-
-// light 1 position and color
-extern Point light1;
-extern float light1_ambient[3];
-extern float light1_diffuse[3];
-extern float light1_specular[3];
-
-// global ambient term
-extern float global_ambient[3];
-
-// light decay parameters
-extern float decay_a;
-extern float decay_b;
-extern float decay_c;
 
 int cuttoff = 100000;
 
@@ -145,8 +116,6 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	}
 	return color;
 }
-
-extern int polycompare;
 
 void rayThread(int i, int j, Point cur_pixel_pos, Vector ray, float x_grid_size, float y_grid_size) {
 	RGB_float ret_color;
@@ -272,6 +241,4 @@ void ray_trace() {
 		cur_pixel_pos.x = x_start;
 	}
 	queue_condition.notify_all();
-	printf("Done queue\n");
-	printf("%d\n", polycompare);
 }

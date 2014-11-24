@@ -8,20 +8,6 @@
 #include "raycast.h"
 #include "model.h"
 
-extern Point light1;
-extern float light1_ambient[3];
-extern float light1_diffuse[3];
-extern float light1_specular[3];
-
-extern float global_ambient[3];
-
-extern RGB_float background_clr;
-extern float decay_a;
-extern float decay_b;
-extern float decay_c;
-
-extern int check_on;
-
 //////////////////////////////////////////////////////////////////////////
 
 /*******************************************

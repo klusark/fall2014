@@ -2,12 +2,7 @@
 #include <GL/glut.h>
 #include <string.h>
 #include "global.h"
-
-// Global variables
-extern int win_width;
-extern int win_height;
-
-extern GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
+#include "raycast.h"
 
 /*********************************************************
  * This function saves the current image to a ppm file

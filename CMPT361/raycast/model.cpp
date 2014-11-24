@@ -69,7 +69,7 @@ Model::Model(const std::string &filename) : bbtop({0,0,0}), bbbottom({0,0,0}) {
 	mat_shineness = 30;
 	reflectance = 0.3;
 }
-int polycompare = 0;
+
 // Moller-Trumbore intersection
 float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out) const {
 
@@ -102,8 +102,6 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
-
-		++polycompare;
 		const Face &f = _faces[i];
 		Vector v1 = _vertices[f.x];
 		Vector v2 = _vertices[f.y];

@@ -40,7 +40,7 @@
 int win_width = WIN_WIDTH;
 int win_height = WIN_HEIGHT;
 
-GLfloat frame[WIN_HEIGHT][WIN_WIDTH][3];
+float frame[WIN_HEIGHT][WIN_WIDTH][3];
 // array for the final image
 // This gets displayed in glut window via texture mapping,
 // you can also save a copy as bitmap by pressing 's'
