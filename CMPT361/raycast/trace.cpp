@@ -124,28 +124,10 @@ float getCheckIntersect(const Point &pos, const Vector &ray, Point &p) {
 RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	IntersectionInfo end;
 	const Object *s = getClosestObject(pos, ray, end);
-/*	int intersect = mod->intersect(ray, o, end3);
-	if (intersect != -1) {
-		Vector norm = mod->getNormal(intersect);
-		return phong(end3, ray, norm, mod);
-	}*/
 	if (s == nullptr) {
 		return background_clr;
 	}
 
-/*		if (t != -1) {
-			Vector sc = ray * t;
-			Point hit = get_point(pos, sc);
-			if (hit.x < 2 && hit.x > -2 && hit.y < 2 && hit.y > -2) {
-				if (((int)((hit.x + 2) * 2)) % 2 == 0) {
-					return {1,0,1};
-				} else {
-					return {0,0,1};
-				}
-			}
-		}
-		return background_clr;
-	}*/
 	Vector norm = s->getNormal(end);
 	RGB_float color = phong(end.pos, ray, norm, s);
 	if (num <= step_max) {
