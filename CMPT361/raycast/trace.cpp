@@ -76,7 +76,10 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 	normalize(&lm);
 	IntersectionInfo end;
 	bool indirect = false;
-	if (shadow_on && getClosestObject(q, lm, end) != nullptr) {
+	const Object *o = getClosestObject(q, lm, end);
+	// If shadows are off we still don't allow light to pass through to the
+	// backside of an object.
+	if (o != nullptr && (shadow_on || o == sph)) {
 		indirect = true;
 	}
 	Vector r = vec_reflect(lm, norm);

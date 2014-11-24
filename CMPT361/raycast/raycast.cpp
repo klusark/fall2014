@@ -275,7 +275,7 @@ int main( int argc, char **argv )
 		return 0;
 	}
 	// we want to make sure that intensity values are normalized
-	//histogram_normalization();
+	histogram_normalization();
 
 	// Show the result in glut via texture mapping
 	glutInit( &argc, argv );
