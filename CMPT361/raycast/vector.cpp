@@ -10,9 +10,9 @@ Vector vec_reflect(const Vector &v, const Vector &norm) {
 
 Vector vec_refract(const Vector &v, const Vector &norm) {
 	float n = 1/1;
-	float c1 = -vec_dot(v, norm);
-	float c2 = sqrt(1 - n*n * (1- c1*c1));
-	return (v * n) + norm * (n * c1 - c2);
+	float a = -vec_dot(v, norm);
+	float s = sqrt(1 - ((n * n) * (1 - (a * a))));
+	return (v * n) + (norm * ((n * a) - s));
 }
 
 Vector operator *(const Vector &v, float s) {
