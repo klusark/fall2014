@@ -90,6 +90,7 @@ int save_on = 0;
 
 // OpenGL
 const int NumPoints = 6;
+GLuint texture;
 
 //----------------------------------------------------------------------------
 
@@ -117,7 +118,6 @@ void init()
 	};
 
 	// Initialize texture objects
-	GLuint texture;
 	glGenTextures( 1, &texture );
 
 	glBindTexture( GL_TEXTURE_2D, texture );
@@ -214,8 +214,6 @@ void idle(void) {
 	timeSinceDisplay += frametime;
 	if (timeSinceDisplay > 50) {
 		timeSinceDisplay = 0;
-		GLuint texture;
-		glGenTextures( 1, &texture );
 
 		glBindTexture( GL_TEXTURE_2D, texture );
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, WIN_WIDTH, WIN_HEIGHT, 0,
@@ -257,6 +255,8 @@ int main( int argc, char **argv )
 
 	if (strcmp(argv[1], "-u") == 0) {  // user defined scene
 		set_up_user_scene();
+	}else if (strcmp(argv[1], "-c") == 0) {  // user defined scene
+		set_up_chess_scene();
 	} else { // default scene
 		set_up_default_scene();
 	}

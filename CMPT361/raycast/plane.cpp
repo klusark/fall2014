@@ -8,17 +8,17 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 	Vector n = normal;
 	float denom = vec_dot(n, ray);
 	if (fabs(denom) > 0.001) {
-		Vector p2 = {0,-3,0};
+		Vector p2 = {0,-2,0};
 		Vector p = {pos.x, pos.y, pos.z};
 		Vector p0 = p2 - p;
 		float t = vec_dot(p0, n) / denom;
 		if (t >= 0.0001) {
 			Vector sc = ray * t;
 			hit.pos = get_point(pos, sc);
-			if (hit.pos.x < -6 || hit.pos.x > 6) {
+			if (hit.pos.x < -3 || hit.pos.x > 3) {
 				return -1;
 			}
-			if (hit.pos.z < -14 || hit.pos.z > -2) {
+			if (hit.pos.z < -6 || hit.pos.z > -0) {
 				return -1;
 			}
 			hit.vertex = 5555;
@@ -58,8 +58,8 @@ Vector Plane::getNormal(const IntersectionInfo &info) const {
 
 
 float Plane::getDiffuse(const Point &p, int i) const {
-	int x = ((p.x + 6) * 8) / 12;
-	int z = ((p.z + 14) * 8) / 12;
+	int x = ((p.x + 3) * 8) / 6;
+	int z = ((p.z + 6) * 8) / 6;
 	if (x % 2 == 0){
 		if (z % 2 == 0) {
 			return mat_diffuse2[i];

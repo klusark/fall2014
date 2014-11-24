@@ -261,12 +261,6 @@ void ray_trace() {
 	float y_start = -0.5 * image_height;
 	Point cur_pixel_pos;
 	Vector ray;
-/*	Model *m = new Model("chess_pieces/chess_hires.smf");
-	scene.push_back(m);
-	scene.push_back(m);
-	scene.push_back(m);
-	scene.push_back(m);
-	scene.push_back(m);*/
 
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
