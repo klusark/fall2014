@@ -42,11 +42,6 @@ extern float decay_a;
 extern float decay_b;
 extern float decay_c;
 
-extern int shadow_on;
-extern int antialias_on;
-extern int refract_on;
-extern int step_max;
-
 int cuttoff = 100000;
 
 /////////////////////////////////////////////////////////////////////
@@ -134,9 +129,13 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num) {
 	Vector norm = s->getNormal(end);
 	RGB_float color = phong(end.pos, ray, norm, s);
 	if (num <= step_max) {
-		Vector h = vec_reflect(ray, norm);
-		RGB_float ref = recursive_ray_trace(end.pos, h, num + 1);
-		color += (ref * s->reflectance);
+		Vector h;
+		RGB_float ref;
+		if (reflect_on) {
+			h= vec_reflect(ray, norm);
+			ref = recursive_ray_trace(end.pos, h, num + 1);
+			color += (ref * s->reflectance);
+		}
 
 		if (refract_on) {
 			h = vec_refract(ray, norm);
