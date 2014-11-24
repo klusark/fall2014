@@ -19,6 +19,8 @@ extern float decay_a;
 extern float decay_b;
 extern float decay_c;
 
+extern int check_on;
+
 //////////////////////////////////////////////////////////////////////////
 
 /*******************************************
@@ -55,8 +57,8 @@ void set_up_default_scene() {
 	float sphere1_shineness = 10;
 	float sphere1_reflectance = 0.4;
 	scene.push_back(new Sphere(sphere1_ctr, sphere1_rad, sphere1_ambient,
-						 sphere1_diffuse, sphere1_specular, sphere1_shineness,
-				 sphere1_reflectance, 1));
+					sphere1_diffuse, sphere1_specular, sphere1_shineness,
+					sphere1_reflectance, 1));
 
 	// sphere 2
 	Point sphere2_ctr = {-1.5, 0.0, -3.5};
@@ -67,8 +69,8 @@ void set_up_default_scene() {
 	float sphere2_shineness = 6;
 	float sphere2_reflectance = 0.3;
 	scene.push_back(new Sphere(sphere2_ctr, sphere2_rad, sphere2_ambient,
-						 sphere2_diffuse, sphere2_specular, sphere2_shineness,
-				 sphere2_reflectance, 2));
+					sphere2_diffuse, sphere2_specular, sphere2_shineness,
+					sphere2_reflectance, 2));
 
 	// sphere 3
 	Point sphere3_ctr = {-0.35, 1.75, -2.25};
@@ -79,8 +81,19 @@ void set_up_default_scene() {
 	float sphere3_shineness = 30;
 	float sphere3_reflectance = 0.3;
 	scene.push_back(new Sphere(sphere3_ctr, sphere3_rad, sphere3_ambient,
-						 sphere3_diffuse, sphere3_specular, sphere3_shineness,
-				 sphere3_reflectance, 3));
+					sphere3_diffuse, sphere3_specular, sphere3_shineness,
+					sphere3_reflectance, 3));
+
+	if (check_on) {
+		float chess_ambient[] = {0.9, 0.0, 1};
+		float chess_diffuse[] = {1, 0, 0.25};
+		float chess_diffuse2[] = {0,25, 0.5, 1};
+		float chess_specular[] = {0, 0, 0};
+		float chess_shineness = 0;
+		float chess_reflectance = .4;
+		scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
+						chess_specular, chess_shineness, chess_reflectance));
+	}
 }
 
 /***************************************
@@ -93,12 +106,4 @@ void set_up_user_scene() {
 	scene[1]->transparency = 0.1;
 	scene[2]->transparency = 0.9;
 
-	float sphere3_ambient[] = {0.9, 0.0, 1};
-	float sphere3_diffuse[] = {1, 0, 0.25};
-	float sphere3_specular[] = {0, 0, 0};
-	float sphere3_shineness = 0;
-	float sphere3_reflectance = 0;
-	scene.push_back(new Plane( sphere3_ambient,
-						 sphere3_diffuse, sphere3_specular, sphere3_shineness,
-				 sphere3_reflectance));
 }

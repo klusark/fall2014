@@ -92,7 +92,7 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 
 		float ds = 0;
 		if (!indirect) {
-			ds += light1_diffuse[i] * sph->mat_diffuse[i] * vec_dot(lm, norm);
+			ds += light1_diffuse[i] * sph->getDiffuse(q, i) * vec_dot(lm, norm);
 			ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
 
 			ip[i] += ds * decay;

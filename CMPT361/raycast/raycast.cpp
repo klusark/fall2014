@@ -242,11 +242,6 @@ int main( int argc, char **argv )
 		return -1;
 	}
 
-	if (strcmp(argv[1], "-u") == 0) {  // user defined scene
-		set_up_user_scene();
-	} else { // default scene
-		set_up_default_scene();
-	}
 
 	step_max = atoi(argv[2]); // maximum level of recursions
 
@@ -258,6 +253,12 @@ int main( int argc, char **argv )
 		if (strcmp(argv[i], "+r") == 0)	refract_on = 1;
 		if (strcmp(argv[i], "+c") == 0)	check_on = 1;
 		if (strcmp(argv[i], "+n") == 0)	save_on = 1;
+	}
+
+	if (strcmp(argv[1], "-u") == 0) {  // user defined scene
+		set_up_user_scene();
+	} else { // default scene
+		set_up_default_scene();
 	}
 
 	//

@@ -16,7 +16,6 @@ class Object {
 public:
 
 	float mat_ambient[3];	// material property used in Phong model
-	float mat_diffuse[3];
 	float mat_specular[3];
 	float mat_shineness;
 
@@ -28,6 +27,10 @@ public:
 
 	virtual float intersect(const Point &, const Vector &, IntersectionInfo &) const = 0;
 	virtual Vector getNormal(const IntersectionInfo &) const = 0;
+	virtual float getDiffuse(const Point &, int i) const { return mat_diffuse[i]; }
+
+protected:
+	float mat_diffuse[3];
 };
 
 class Sphere : public Object {
