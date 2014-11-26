@@ -36,6 +36,20 @@ void set_up_lights() {
 	decay_c = 0.0;
 }
 
+void setup_plane() {
+	if (check_on) {
+		float chess_ambient[] = {0.9, 0.0, 1};
+		float chess_diffuse[] = {1, 1, 1};
+		float chess_diffuse2[] = {0, 0, 0};
+		float chess_specular[] = {0, 0, 0};
+		float chess_shineness = 0;
+		float chess_reflectance = .4;
+		scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
+						chess_specular, chess_shineness, chess_reflectance,
+						{-3, 0, -6}, {3, 0, 0}, {0,1,0}));
+	}
+}
+
 void set_up_default_scene() {
 	set_up_lights();
 
@@ -74,17 +88,7 @@ void set_up_default_scene() {
 	scene.push_back(new Sphere(sphere3_ctr, sphere3_rad, sphere3_ambient,
 					sphere3_diffuse, sphere3_specular, sphere3_shineness,
 					sphere3_reflectance, 3));
-
-	if (check_on) {
-		float chess_ambient[] = {0.9, 0.0, 1};
-		float chess_diffuse[] = {1, 1, 1};
-		float chess_diffuse2[] = {0, 0, 0};
-		float chess_specular[] = {0, 0, 0};
-		float chess_shineness = 0;
-		float chess_reflectance = .4;
-		scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
-						chess_specular, chess_shineness, chess_reflectance));
-	}
+	setup_plane();
 }
 
 /***************************************
@@ -132,16 +136,8 @@ void set_up_user_scene() {
 	scene[0]->transparency = 0.5;
 	scene[1]->transparency = 0.6;
 	scene[2]->transparency = 0.9;
-	if (check_on) {
-		float chess_ambient[] = {0.9, 0.0, 1};
-		float chess_diffuse[] = {1, 1, 1};
-		float chess_diffuse2[] = {0, 0, 0};
-		float chess_specular[] = {0, 0, 0};
-		float chess_shineness = 0;
-		float chess_reflectance = .4;
-		scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
-						chess_specular, chess_shineness, chess_reflectance));
-	}
+
+	setup_plane();
 
 }
 

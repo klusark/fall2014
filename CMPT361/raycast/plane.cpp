@@ -15,10 +15,10 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 		if (t >= 0.0001) {
 			Vector sc = ray * t;
 			hit.pos = get_point(pos, sc);
-			if (hit.pos.x < -3 || hit.pos.x > 3) {
+			if (hit.pos.x < _a.x || hit.pos.x > _b.x) {
 				return -1;
 			}
-			if (hit.pos.z < -6 || hit.pos.z > -0) {
+			if (hit.pos.z < _a.z || hit.pos.z > _b.z) {
 				return -1;
 			}
 			hit.vertex = 5555;
@@ -31,7 +31,7 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 
 Plane::Plane(float amb[],
 				float dif[], float dif2[], float spe[], float shine,
-				float refl) : normal({0,1,0}) {
+				float refl, Vector a, Vector b, Vector up) : normal(up), _a(a), _b(b) {
 	normalize(&normal);
 	mat_ambient[0] = amb[0];
 	mat_ambient[1] = amb[1];
