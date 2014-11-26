@@ -140,7 +140,7 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 			out.pos.y = o.y + sc.y;
 			out.pos.z = o.z + sc.z;
 			out.vertex = i;
-			return i;
+			return t2;
 		}
 	}
 	return -1;

@@ -8,7 +8,7 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 	Vector n = normal;
 	float denom = vec_dot(n, ray);
 	if (fabs(denom) > 0.001) {
-		Vector p2 = {0,-2,0};
+		Vector p2 = _pos;
 		Vector p = {pos.x, pos.y, pos.z};
 		Vector p0 = p2 - p;
 		float t = vec_dot(p0, n) / denom;
@@ -31,7 +31,7 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 
 Plane::Plane(float amb[],
 				float dif[], float dif2[], float spe[], float shine,
-				float refl, Vector a, Vector b, Vector up) : normal(up), _a(a), _b(b) {
+				float refl, Vector a, Vector b, Vector up, const Vector &p) : normal(up), _a(a), _b(b), _pos(p) {
 	normalize(&normal);
 	mat_ambient[0] = amb[0];
 	mat_ambient[1] = amb[1];

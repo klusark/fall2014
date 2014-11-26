@@ -10,9 +10,6 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-/*******************************************
- * set up the default scene - DO NOT CHANGE
- *******************************************/
 void set_up_lights() {
 	// set background color
 	background_clr.r = 0.5;
@@ -46,7 +43,7 @@ void setup_plane() {
 		float chess_reflectance = .4;
 		scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
 						chess_specular, chess_shineness, chess_reflectance,
-						{-3, 0, -6}, {3, 0, 0}, {0,1,0}));
+						{-3, 0, -6}, {3, 0, 0}, {0,1,0}, {0,-2,0}));
 	}
 }
 
@@ -156,5 +153,5 @@ void set_up_chess_scene() {
 	float chess_reflectance = .4;
 	scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
 					chess_specular, chess_shineness, chess_reflectance,
-					{-3, 0, -6}, {3, 0, 0}, {0,1,0}));
+					{-300, 0, -300}, {300, 0, 300}, {0,1,0}, {0,-2,0}));
 }
