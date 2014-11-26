@@ -42,15 +42,15 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 		x--;
 		y--;
 		z--;
+		//Based on https://www.opengl.org/wiki/Calculating_a_Surface_Normal
 		Vector norm;
 		Vector v1 = _vertices[x];
 		Vector v2 = _vertices[y];
 		Vector v3 = _vertices[z];
 		Vector u = v2 - v1;
 		Vector v = v3 - v1;
-		norm.x = u.y * v.z - u.z * v.y;
-		norm.y = u.z * v.x - u.x * v.z;
-		norm.z = u.x * v.y - u.y * v.x;
+		norm = vec_cross(v,u);
+		normalize(&norm);
 
 		_faces.push_back({x,y,z, norm});
 	}
@@ -60,7 +60,7 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 	mat_ambient[1] = 0.7;
 	mat_ambient[2] = 0.7;
 
-	mat_diffuse[0] = 1;
+	mat_diffuse[0] = 0;
 	mat_diffuse[1] = 0;
 	mat_diffuse[2] = 1;
 
@@ -105,9 +105,9 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
 		const Face &f = _faces[i];
-		Vector v1 = _vertices[f.x];
+		Vector v3 = _vertices[f.x];
 		Vector v2 = _vertices[f.y];
-		Vector v3 = _vertices[f.z];
+		Vector v1 = _vertices[f.z];
 
 		Vector e1 = v2-v1;
 		Vector e2 = v3-v1;

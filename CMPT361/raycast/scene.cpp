@@ -142,8 +142,8 @@ void set_up_user_scene() {
 void set_up_chess_scene() {
 	set_up_lights();
 
-	scene.push_back(new Model("chess_pieces/chess_piece.smf", {-1, -0.5, -2}));
-	scene.push_back(new Model("chess_pieces/chess_piece.smf", {0, -0.5, -2}));
+	scene.push_back(new Model("chess_pieces/chess_hires.smf", {-1, -2, -2}));
+	scene.push_back(new Model("chess_pieces/chess_piece.smf", {0, -2, -2}));
 
 	float chess_ambient[] = {0.9, 0.0, 1};
 	float chess_diffuse[] = {1, 1, 1};
@@ -153,5 +153,5 @@ void set_up_chess_scene() {
 	float chess_reflectance = .4;
 	scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
 					chess_specular, chess_shineness, chess_reflectance,
-					{-300, 0, -300}, {300, 0, 300}, {0,1,0}, {0,-2,0}));
+					{-300, 0, -300}, {300, 0, 300}, {0,1,0}, {0,-3,0}));
 }

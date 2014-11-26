@@ -61,7 +61,7 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 
 		float ds = 0;
 		if (!indirect) {
-			ds += light1_diffuse[i] * sph->getDiffuse(q, i) * vec_dot(lm, norm);
+			//ds += light1_diffuse[i] * sph->getDiffuse(q, i) * vec_dot(lm, norm);
 			ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
 
 			ip[i] += ds * decay;
@@ -69,21 +69,6 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 	}
 	RGB_float color = {ip[0], ip[1], ip[2]};
 	return color;
-}
-
-float getCheckIntersect(const Point &pos, const Vector &ray, Point &p) {
-	Vector n = {0,1,-1};
-	normalize(&n);
-	float denom = vec_dot(n, ray);
-	if (denom > 0.0001) {
-		Point p2 = {0,0,3};
-		Vector p0 = get_vec(p2, pos);
-		float t = vec_dot(p0, n) / denom;
-		if (t >= 0) {
-			return t;
-		}
-	}
-	return -1;
 }
 
 /************************************************************************
