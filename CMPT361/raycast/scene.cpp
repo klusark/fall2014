@@ -143,27 +143,18 @@ void set_up_user_scene() {
 
 
 void set_up_chess_scene() {
-	// set background color
-	background_clr.r = 0.5;
-	background_clr.g = 0.05;
-	background_clr.b = 0.8;
+	set_up_lights();
 
-	// setup global ambient term
-	global_ambient[0] = global_ambient[1] = global_ambient[2] = 0.2;
+	scene.push_back(new Model("chess_pieces/chess_piece.smf", {-1, -0.5, -2}));
+	scene.push_back(new Model("chess_pieces/chess_piece.smf", {0, -0.5, -2}));
 
-	// setup light 1
-	light1.x = -2.0;
-	light1.y = 5.0;
-	light1.z = 1.0;
-	light1_ambient[0] = light1_ambient[1] = light1_ambient[2] = 0.1;
-	light1_diffuse[0] = light1_diffuse[1] = light1_diffuse[2] = 1.0;
-	light1_specular[0] = light1_specular[1] = light1_specular[2] = 1.0;
-
-	// set up decay parameters
-	decay_a = 0.5;
-	decay_b = 0.3;
-	decay_c = 0.0;
-
-	//scene.push_back(new Model("chess_pieces/chess_hires.smf"));
-	scene.push_back(new Model("chess_pieces/bishop_hires.smf"));
+	float chess_ambient[] = {0.9, 0.0, 1};
+	float chess_diffuse[] = {1, 1, 1};
+	float chess_diffuse2[] = {0, 0, 0};
+	float chess_specular[] = {0, 0, 0};
+	float chess_shineness = 0;
+	float chess_reflectance = .4;
+	scene.push_back(new Plane(chess_ambient, chess_diffuse, chess_diffuse2,
+					chess_specular, chess_shineness, chess_reflectance,
+					{-3, 0, -6}, {3, 0, 0}, {0,1,0}));
 }

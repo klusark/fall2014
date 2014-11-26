@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cmath>
 
-Model::Model(const std::string &filename) : bbtop({0,0,0}), bbbottom({0,0,0}) {
+Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), bbbottom({0,0,0}) {
 	FILE *f = fopen(filename.c_str(), "r");
 
 	int verts, faces;
@@ -11,7 +11,9 @@ Model::Model(const std::string &filename) : bbtop({0,0,0}), bbbottom({0,0,0}) {
 	for (int i = 0; i < verts; ++i) {
 		float x,y,z;
 		fscanf(f, "v %f %f %f\n", &x, &y, &z);
-		z -= 2;
+		x += off.x;
+		y += off.y;
+		z += off.z;
 		if (x > bbtop.x) {
 			bbtop.x = x;
 		}
