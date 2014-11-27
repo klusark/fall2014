@@ -58,8 +58,8 @@ Vector Plane::getNormal(const IntersectionInfo &info) const {
 
 
 float Plane::getDiffuse(const Point &p, int i) const {
-	int x = ((p.x + 3) * 8) / 6;
-	int z = ((p.z + 6) * 8) / 6;
+	int x = ((p.x - _a.x) * 8) / 6;
+	int z = ((p.z - _b.x) * 8) / 6;
 	if (x % 2 == 0){
 		if (z % 2 == 0) {
 			return mat_diffuse2[i];
