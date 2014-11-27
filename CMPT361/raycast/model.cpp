@@ -47,8 +47,8 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 		Vector v1 = _vertices[x];
 		Vector v2 = _vertices[y];
 		Vector v3 = _vertices[z];
-		Vector u = v2 - v1;
-		Vector v = v3 - v1;
+		Vector u = v2 - v3;
+		Vector v = v1 - v3;
 		norm = normalize(cross(v,u));
 
 		_faces.push_back({x,y,z, norm});
@@ -101,6 +101,7 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 		return -1;
 	}
 
+	float closest = -1;
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
 		const Face &f = _faces[i];
@@ -134,15 +135,17 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 		}
 		float t2 = dot(e2, q) * inv_det;
 		if (t2 > 0.0001f) {
-			Vector sc = ray * t2;
-			out.pos.x = o.x + sc.x;
-			out.pos.y = o.y + sc.y;
-			out.pos.z = o.z + sc.z;
-			out.vertex = i;
-			return t2;
+			if (t2 < closest || closest == -1) {
+				Vector sc = ray * t2;
+				out.pos.x = o.x + sc.x;
+				out.pos.y = o.y + sc.y;
+				out.pos.z = o.z + sc.z;
+				out.vertex = i;
+				closest = t2;
+			}
 		}
 	}
-	return -1;
+	return closest;
 }
 
 Vector Model::getNormal(const IntersectionInfo &info) const {
