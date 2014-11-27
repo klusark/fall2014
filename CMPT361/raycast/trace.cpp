@@ -20,11 +20,13 @@ int cuttoff = 100000;
 
 const Object *getClosestObject(const Point &pos, const Vector &ray, IntersectionInfo &end) {
 	float closest = -1;
+	bool notfound = true;
 	const Object *sph = nullptr;
 	IntersectionInfo info;
 	for (const auto *s : scene) {
 		float val = s->intersect(pos, ray, info);
-		if (val != -1 && (closest == -1 || val < closest) && val < cuttoff) {
+		if (val != -1 && (notfound || val < closest) && val < cuttoff) {
+			notfound = false;
 			closest = val;
 			sph = s;
 			end = info;
@@ -94,20 +96,21 @@ RGB_float recursive_ray_trace(Point &pos, Vector &ray, int num, bool inside=fals
 		if (!inside && reflect_on) {
 			h = vec_reflect(ray, norm);
 			ref = recursive_ray_trace(end.pos, h, num + 1);
-//			color += ((ref * s->reflectance)*.3);
 		}
-/*		RGB_float diff = {0,0,0};
-		std::default_random_engine generator;
-		std::uniform_int_distribution<int> distribution(-1,1);
-		for (int i = 0; i < 0; ++i) {
-			h = vec_reflect(ray, norm);
-			h = RotateX(distribution(generator)) *
-				RotateY(distribution(generator)) *
-				RotateZ(distribution(generator)) * h;
-			diff += recursive_ray_trace(end.pos, h,  num+1);
+		if (stochdiff_on) {
+			RGB_float diff = {0,0,0};
+			std::default_random_engine generator;
+			std::uniform_int_distribution<int> distribution(-10,10);
+			for (int i = 0; i < STOCH_RAYS; ++i) {
+				h = vec_reflect(ray, norm);
+				h = RotateX(distribution(generator)) *
+					RotateY(distribution(generator)) *
+					RotateZ(distribution(generator)) * h;
+				diff += recursive_ray_trace(end.pos, h,  num+1);
+			}
+			diff /= 6;
+			color += (diff*s->reflectance);
 		}
-		diff /= 6;*/
-//		color += diff;
 
 		if (refract_on) {
 			if (inside) {
@@ -199,7 +202,7 @@ void workThread() {
 
 std::vector<std::thread> threads;
 
-void queueRay(int i, int j, Point cur_pixel_pos, Vector ray, float x_grid_size, float y_grid_size) {
+void queueRay(int i, int j, const Point &cur_pixel_pos, const Vector &ray, float x_grid_size, float y_grid_size) {
 	RayData d;
 	d.i = i;
 	d.j = j;
@@ -246,8 +249,6 @@ void ray_trace() {
 			ray = normalize(ray);
 
 			queueRay(i, j, cur_pixel_pos, ray, x_grid_size, y_grid_size);
-
-
 
 			cur_pixel_pos.x += x_grid_size;
 		}

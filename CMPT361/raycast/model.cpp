@@ -14,22 +14,22 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 		x += off.x;
 		y += off.y;
 		z += off.z;
-		if (x > bbtop.x) {
+		if (i == 0 || x > bbtop.x) {
 			bbtop.x = x;
 		}
-		if (y > bbtop.y) {
+		if (i == 0 || y > bbtop.y) {
 			bbtop.y = y;
 		}
-		if (z > bbtop.z) {
+		if (i == 0 || z > bbtop.z) {
 			bbtop.z = z;
 		}
-		if (x < bbbottom.x) {
+		if (i == 0 || x < bbbottom.x) {
 			bbbottom.x = x;
 		}
-		if (y < bbbottom.y) {
+		if (i == 0 || y < bbbottom.y) {
 			bbbottom.y = y;
 		}
-		if (z < bbbottom.z) {
+		if (i == 0 || z < bbbottom.z) {
 			bbbottom.z = z;
 		}
 
@@ -68,40 +68,47 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 	mat_specular[2] = 1;
 
 	mat_shineness = 30;
-	reflectance = 0.3;
+	reflectance = 0.5;
+	transparency = 0.5;
 }
 
 // Moller-Trumbore intersection
 float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out) const {
 
 	Vector o = {r.x, r.y, r.z};
-	Vector t1 = bbbottom - o;
-	Vector t2 = bbtop - o;
+	Vector lb = bbtop;
+	Vector rt = bbbottom;
 
-	float tx1 = t1.x*ray.x;
-	float tx2 = t2.x*ray.x;
+	// based on https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms/18459#18459
+	// r.dir is unit direction vector of ray
+	Vector dirfrac;
+	dirfrac.x = 1.0f / ray.x;
+	dirfrac.y = 1.0f / ray.y;
+	dirfrac.z = 1.0f / ray.z;
+	// lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
+	// r.org is origin of ray
+	float t1 = (lb.x - o.x)*dirfrac.x;
+	float t2 = (rt.x - o.x)*dirfrac.x;
+	float t3 = (lb.y - o.y)*dirfrac.y;
+	float t4 = (rt.y - o.y)*dirfrac.y;
+	float t5 = (lb.z - o.z)*dirfrac.z;
+	float t6 = (rt.z - o.z)*dirfrac.z;
 
-	float tmin = std::min(tx1, tx2);
-	float tmax = std::max(tx1, tx2);
+	float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
+	float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
 
-	float ty1 = t1.y*ray.y;
-	float ty2 = t2.y*ray.y;
+	// if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
+	if (tmax < 0) {
+		return -1;
+	}
 
-	tmin = std::max(tmin, std::min(ty1, ty2));
-	tmax = std::min(tmax, std::max(ty1, ty2));
-
-	float tz1 = t1.z*ray.z;
-	float tz2 = t2.z*ray.z;
-
-	tmin = std::max(tmin, std::min(tz1, tz2));
-	tmax = std::min(tmax, std::max(tz1, tz2));
-
-
-	if (tmax <= tmin) {
+	// if tmin > tmax, ray doesn't intersect AABB
+	if (tmin > tmax) {
 		return -1;
 	}
 
 	float closest = -1;
+	bool notfound = true;
 	int size = _faces.size();
 	for (int i = 0; i < size; ++i) {
 		const Face &f = _faces[i];
@@ -135,7 +142,8 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 		}
 		float t2 = dot(e2, q) * inv_det;
 		if (t2 > 0.0001f) {
-			if (t2 < closest || closest == -1) {
+			if (notfound || t2 < closest) {
+				notfound = false;
 				Vector sc = ray * t2;
 				out.pos.x = o.x + sc.x;
 				out.pos.y = o.y + sc.y;

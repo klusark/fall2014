@@ -88,6 +88,7 @@ int refract_on = 0;
 int check_on = 0;
 int save_on = 0;
 int reflect_on = 0;
+int stochdiff_on = 0;
 
 
 // OpenGL
@@ -249,6 +250,7 @@ int main( int argc, char **argv )
 		if (strcmp(argv[i], "+c") == 0)	check_on = 1;
 		if (strcmp(argv[i], "+l") == 0)	reflect_on = 1;
 		if (strcmp(argv[i], "+n") == 0)	save_on = 1;
+		if (strcmp(argv[i], "+f") == 0)	stochdiff_on = 1;
 	}
 
 	if (strcmp(argv[1], "-u") == 0) {  // user defined scene

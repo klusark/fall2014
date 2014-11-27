@@ -13,7 +13,7 @@ extern int refract_on;
 extern int reflect_on;
 extern int check_on;
 extern int step_max;
-
+extern int stochdiff_on;
 
 extern int win_width;
 extern int win_height;
