@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 #include "sphere.h"
 #include "global.h"
 
@@ -17,6 +18,7 @@ extern int step_max;
 extern int win_width;
 extern int win_height;
 
+extern std::mutex frame_mutex;
 extern float frame[WIN_HEIGHT][WIN_WIDTH][3];
 
 extern float image_width;

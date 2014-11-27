@@ -40,6 +40,7 @@
 int win_width = WIN_WIDTH;
 int win_height = WIN_HEIGHT;
 
+std::mutex frame_mutex;
 float frame[WIN_HEIGHT][WIN_WIDTH][3];
 // array for the final image
 // This gets displayed in glut window via texture mapping,
@@ -122,8 +123,6 @@ void init()
 	glGenTextures( 1, &texture );
 
 	glBindTexture( GL_TEXTURE_2D, texture );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, WIN_WIDTH, WIN_HEIGHT, 0,
-		GL_RGB, GL_FLOAT, frame );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
@@ -217,13 +216,10 @@ void idle(void) {
 		timeSinceDisplay = 0;
 
 		glBindTexture( GL_TEXTURE_2D, texture );
+		frame_mutex.lock();
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, WIN_WIDTH, WIN_HEIGHT, 0,
 			GL_RGB, GL_FLOAT, frame );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-		glActiveTexture( GL_TEXTURE0 );
+		frame_mutex.unlock();
 		glutPostRedisplay();
 	}
 	timeElapsed = newtime;

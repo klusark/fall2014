@@ -130,9 +130,12 @@ void rayThread(int i, int j, Point cur_pixel_pos, Vector ray, float x_grid_size,
 		ret_color = colors[0];
 	}
 
-	frame[i][j][0] = GLfloat(ret_color.r);
-	frame[i][j][1] = GLfloat(ret_color.g);
-	frame[i][j][2] = GLfloat(ret_color.b);
+
+	frame_mutex.lock();
+	frame[i][j][0] = ret_color.r;
+	frame[i][j][1] = ret_color.g;
+	frame[i][j][2] = ret_color.b;
+	frame_mutex.unlock();
 }
 
 struct RayData {
