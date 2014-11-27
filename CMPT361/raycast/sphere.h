@@ -14,6 +14,7 @@ public:
 
 class Object {
 public:
+	Object();
 
 	float mat_ambient[3];	// material property used in Phong model
 	float mat_specular[3];

@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cmath>
 
+struct vec4;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -171,6 +172,7 @@ struct vec3 {
 	x(x), y(y), z(z) {}
 
     vec3( const vec3& v ) { x = v.x;  y = v.y;  z = v.z; }
+    void operator =( const vec4& v );
 
     vec3( const vec2& v, const float f ) { x = v.x;  y = v.y;  z = f; }
 
@@ -422,6 +424,8 @@ struct vec4 {
     operator float* ()
 	{ return static_cast<float*>( &x ); }
 };
+
+inline void vec3::operator =( const vec4& v ) { x = v.x;  y = v.y;  z = v.z; }
 
 //----------------------------------------------------------------------------
 //

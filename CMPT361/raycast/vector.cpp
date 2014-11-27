@@ -8,10 +8,10 @@ Vector vec_reflect(const Vector &v, const Vector &norm) {
 	return v - (norm * 2 * dot(v, norm));
 }
 
-Vector vec_refract(const Vector &v, const Vector &norm) {
-	float n = 1/1;
+Vector vec_refract(const Vector &v, const Vector &norm, float n1, float n2) {
+	float n = n1/n2;
 	float a = -dot(v, norm);
-	float s = sqrt(1 - ((n * n) * (1 - (a * a))));
+	float s = sqrt(1.0 - ((n * n) * (1.0 - (a * a))));
 	return (v * n) + (norm * ((n * a) - s));
 }
 
@@ -68,7 +68,11 @@ void operator /=(RGB_float &p, float s) {
 	p.g /= s;
 	p.b /= s;
 }
-
+void operator *=(RGB_float &p, float s) {
+	p.r *= s;
+	p.g *= s;
+	p.b *= s;
+}
 void operator +=(RGB_float &p, const RGB_float &q) {
 	p.r += q.r;
 	p.g += q.g;

@@ -16,19 +16,20 @@ typedef struct {
 } Point; // geometric 3D point
 
 
-typedef struct {
+struct RGB_float{
 	float r;
 	float g;
 	float b;
-} RGB_float;
+};
 
 Vector vec_reflect(const Vector &, const Vector &);
-Vector vec_refract(const Vector &, const Vector &);
+Vector vec_refract(const Vector &, const Vector &, float n1, float n2);
 Vector get_vec(const Point &, const Point &);
 Point get_point(const Point &, const Vector &);
 
 RGB_float operator +(const RGB_float &, const RGB_float &);
 RGB_float operator *(const RGB_float &, float);
 void operator +=(RGB_float &, const RGB_float &);
+void operator *=(RGB_float &, float);
 void operator /=(RGB_float &, float);
 

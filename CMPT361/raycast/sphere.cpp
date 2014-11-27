@@ -39,6 +39,21 @@ float Sphere::intersect(const Point &o, const Vector &u, IntersectionInfo &hit) 
 	return d;
 }
 
+Object::Object() {
+	mat_ambient[0] = 0;
+	mat_ambient[1] = 0;
+	mat_ambient[2] = 0;
+	mat_diffuse[0] = 0;
+	mat_diffuse[1] = 0;
+	mat_diffuse[2] = 0;
+	mat_specular[0] = 0;
+	mat_specular[1] = 0;
+	mat_specular[2] = 0;
+	mat_shineness = 0;
+	reflectance = 0;
+	transparency = 0;
+}
+
 
 /*****************************************************
  * This function adds a sphere into the sphere list
