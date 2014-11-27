@@ -35,7 +35,7 @@ void set_up_lights() {
 
 void setup_plane() {
 	if (check_on) {
-		float chess_ambient[] = {0.9, 0.0, 1};
+		float chess_ambient[] = {0.0, 0.0, 0};
 		float chess_diffuse[] = {1, 1, 1};
 		float chess_diffuse2[] = {0, 0, 0};
 		float chess_specular[] = {0, 0, 0};
