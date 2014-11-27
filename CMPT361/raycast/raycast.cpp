@@ -184,6 +184,8 @@ void display( void )
 	glutSwapBuffers();
 }
 
+void cleanup_threads();
+
 /*********************************************************
  * This function handles keypresses
  *
@@ -196,6 +198,7 @@ void keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
 	case 'q':case 'Q':
+		cleanup_threads();
 		exit(0);
 		break;
 	case 's':case 'S':

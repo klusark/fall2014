@@ -238,7 +238,7 @@ void ray_trace() {
 	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
 	cur_pixel_pos.z = image_plane;
 
-	for (int i = 0; i < 4; ++i) {
+	for (unsigned int i = 0; i < std::thread::hardware_concurrency(); ++i) {
 		std::thread t(workThread);
 		threads.push_back(std::move(t));
 	}
@@ -257,4 +257,13 @@ void ray_trace() {
 		cur_pixel_pos.x = x_start;
 	}
 	queue_condition.notify_all();
+}
+
+void cleanup_threads() {
+	queue_mutex.lock();
+	queue = std::queue<RayData>();
+	queue_mutex.unlock();
+	for (auto &t : threads) {
+		t.join();
+	}
 }
