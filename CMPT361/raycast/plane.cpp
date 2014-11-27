@@ -6,12 +6,12 @@
 
 float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hit) const {
 	Vector n = normal;
-	float denom = vec_dot(n, ray);
+	float denom = dot(n, ray);
 	if (fabs(denom) > 0.001) {
 		Vector p2 = _pos;
 		Vector p = {pos.x, pos.y, pos.z};
 		Vector p0 = p2 - p;
-		float t = vec_dot(p0, n) / denom;
+		float t = dot(p0, n) / denom;
 		if (t >= 0.0001) {
 			Vector sc = ray * t;
 			hit.pos = get_point(pos, sc);
@@ -31,8 +31,8 @@ float Plane::intersect(const Point &pos, const Vector &ray, IntersectionInfo &hi
 
 Plane::Plane(float amb[],
 				float dif[], float dif2[], float spe[], float shine,
-				float refl, Vector a, Vector b, Vector up, const Vector &p) : normal(up), _a(a), _b(b), _pos(p) {
-	normalize(&normal);
+				float refl, Vector a, Vector b, Vector up, const Vector &p) : _a(a), _b(b), _pos(p) {
+	normal = normalize(up);
 	mat_ambient[0] = amb[0];
 	mat_ambient[1] = amb[1];
 	mat_ambient[2] = amb[2];

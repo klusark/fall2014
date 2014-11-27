@@ -5,68 +5,16 @@
 #include <math.h>
 
 Vector vec_reflect(const Vector &v, const Vector &norm) {
-	return v - (norm * 2 * vec_dot(v, norm));
+	return v - (norm * 2 * dot(v, norm));
 }
 
 Vector vec_refract(const Vector &v, const Vector &norm) {
 	float n = 1/1;
-	float a = -vec_dot(v, norm);
+	float a = -dot(v, norm);
 	float s = sqrt(1 - ((n * n) * (1 - (a * a))));
 	return (v * n) + (norm * ((n * a) - s));
 }
 
-Vector operator *(const Vector &v, float s) {
-	Vector ret;
-
-	ret.x = s * v.x;
-	ret.y = s * v.y;
-	ret.z = s * v.z;
-
-	return ret;
-}
-
-Vector operator -(const Vector &p, const Vector &q) {
-	Vector rc;
-	rc.x = p.x - q.x;
-	rc.y = p.y - q.y;
-	rc.z = p.z - q.z;
-
-	return rc;
-}
-//
-// return length of a vector
-//
-float vec_len(const Vector &u) {
-	return sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
-}
-
-//
-// return doc product of two vectors
-//
-float vec_dot(const Vector &p, const Vector &q) {
-	return p.x * q.x + p.y * q.y + p.z * q.z;
-}
-
-Vector vec_cross(const Vector &a, const Vector &b )
-{
-	Vector v = { a.y * b.z - a.z * b.y,
-		a.z * b.x - a.x * b.z,
-		a.x * b.y - a.y * b.x };
-	return v;
-}
-
-
-//
-// return sum of two vectors
-//
-Vector operator +(const Vector &p, const Vector &q) {
-	Vector rc;
-	rc.x = p.x + q.x;
-	rc.y = p.y + q.y;
-	rc.z = p.z + q.z;
-
-	return rc;
-}
 
 //
 // return vector from point point to another
@@ -90,18 +38,6 @@ Point get_point(const Point &p, const Vector &q) {
 	rc.z = p.z + q.z;
 
 	return rc;
-}
-
-//
-// normalize a vector
-//
-void normalize(Vector *u) {
-	float p;
-
-	p = vec_len(*u);
-	(*u).x = (*u).x / p;
-	(*u).y = (*u).y / p;
-	(*u).z = (*u).z / p;
 }
 
 //

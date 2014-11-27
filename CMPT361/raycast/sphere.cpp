@@ -17,8 +17,8 @@
 float Sphere::intersect(const Point &o, const Vector &u, IntersectionInfo &hit) const {
 	Vector oc = get_vec(center, o);
 
-	float loc = vec_dot(u, oc);
-	float len = vec_len(oc);
+	float loc = dot(u, oc);
+	float len = length(oc);
 	float tot = loc * loc - len * len + (radius * radius);
 	if (tot <= 0) {
 		return -1;
@@ -71,6 +71,5 @@ Vector Sphere::getNormal(const IntersectionInfo &info) const {
 	Vector rc;
 
 	rc = get_vec(center, info.pos);
-	normalize(&rc);
-	return rc;
+	return normalize(rc);
 }

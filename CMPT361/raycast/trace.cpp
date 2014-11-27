@@ -38,8 +38,8 @@ const Object *getClosestObject(const Point &pos, const Vector &ray, Intersection
 RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph) {
 	float ip[3] = {0,0,0};
 	Vector lm = get_vec(q, light1);
-	float dist = vec_len(lm);
-	normalize(&lm);
+	float dist = length(lm);
+	lm = normalize(lm);
 	IntersectionInfo end;
 	bool indirect = false;
 	const Object *o = getClosestObject(q, lm, end);
@@ -48,9 +48,8 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 	if (o != nullptr && (shadow_on || o == sph)) {
 		indirect = true;
 	}
-	Vector r = vec_reflect(lm, norm);
-	normalize(&v);
-	normalize(&r);
+	Vector r = normalize(vec_reflect(lm, norm));
+	v = normalize(v);
 
 	float decay = 1/(decay_a + decay_b * dist + decay_c * dist * dist);
 
@@ -61,8 +60,8 @@ RGB_float phong(const Point &q, Vector v, const Vector &norm, const Object *sph)
 
 		float ds = 0;
 		if (!indirect) {
-			ds += light1_diffuse[i] * sph->getDiffuse(q, i) * vec_dot(lm, norm);
-			ds += light1_specular[i] * sph->mat_specular[i] * pow(vec_dot(r, v), sph->mat_shineness);
+			ds += light1_diffuse[i] * sph->getDiffuse(q, i) * dot(lm, norm);
+			ds += light1_specular[i] * sph->mat_specular[i] * pow(dot(r, v), sph->mat_shineness);
 
 			ip[i] += ds * decay;
 		}
@@ -216,7 +215,7 @@ void ray_trace() {
 	for (i=0; i<win_height; i++) {
 		for (j=0; j<win_width; j++) {
 			ray = get_vec(eye_pos, cur_pixel_pos);
-			normalize(&ray);
+			ray = normalize(ray);
 
 			queueRay(i, j, cur_pixel_pos, ray, x_grid_size, y_grid_size);
 

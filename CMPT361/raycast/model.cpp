@@ -49,8 +49,7 @@ Model::Model(const std::string &filename, const Vector &off) : bbtop({0,0,0}), b
 		Vector v3 = _vertices[z];
 		Vector u = v2 - v1;
 		Vector v = v3 - v1;
-		norm = vec_cross(v,u);
-		normalize(&norm);
+		norm = normalize(cross(v,u));
 
 		_faces.push_back({x,y,z, norm});
 	}
@@ -111,8 +110,8 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 
 		Vector e1 = v2-v1;
 		Vector e2 = v3-v1;
-		Vector p = vec_cross(ray, e2);
-		float det = vec_dot(e1, p);
+		Vector p = cross(ray, e2);
+		float det = dot(e1, p);
 
 		if (fabs(det) < 0.000001f) {
 			continue;
@@ -121,19 +120,19 @@ float Model::intersect(const Point &r, const Vector &ray, IntersectionInfo &out)
 
 		Vector t = o - v1;
 
-		float u = vec_dot(t, p) * inv_det;
+		float u = dot(t, p) * inv_det;
 
 		if (u < 0.f || u > 1.f) {
 			continue;
 		}
 
-		Vector q = vec_cross(t, e1);
-		float v = vec_dot(ray, q) * inv_det;
+		Vector q = cross(t, e1);
+		float v = dot(ray, q) * inv_det;
 
 		if (v < 0.f || v + u > 1.f) {
 			continue;
 		}
-		float t2 = vec_dot(e2, q) * inv_det;
+		float t2 = dot(e2, q) * inv_det;
 		if (t2 > 0.0001f) {
 			Vector sc = ray * t2;
 			out.pos.x = o.x + sc.x;

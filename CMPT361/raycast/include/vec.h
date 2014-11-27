@@ -7,9 +7,9 @@
 #ifndef __ANGEL_VEC_H__
 #define __ANGEL_VEC_H__
 
-#include "Angel.h"
+#include <iostream>
+#include <cmath>
 
-namespace Angel {
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -18,17 +18,17 @@ namespace Angel {
 
 struct vec2 {
 
-    GLfloat  x;
-    GLfloat  y;
+    float  x;
+    float  y;
 
     //
     //  --- Constructors and Destructors ---
     //
 
-    vec2( GLfloat s = GLfloat(0.0) ) :
+    vec2( float s = float(0.0) ) :
 	x(s), y(s) {}
 
-    vec2( GLfloat x, GLfloat y ) :
+    vec2( float x, float y ) :
 	x(x), y(y) {}
 
     vec2( const vec2& v )
@@ -38,8 +38,8 @@ struct vec2 {
     //  --- Indexing Operator ---
     //
 
-    GLfloat& operator [] ( int i ) { return *(&x + i); }
-    const GLfloat operator [] ( int i ) const { return *(&x + i); }
+    float& operator [] ( int i ) { return *(&x + i); }
+    const float operator [] ( int i ) const { return *(&x + i); }
 
     //
     //  --- (non-modifying) Arithematic Operators ---
@@ -54,16 +54,16 @@ struct vec2 {
     vec2 operator - ( const vec2& v ) const
 	{ return vec2( x - v.x, y - v.y ); }
 
-    vec2 operator * ( const GLfloat s ) const
+    vec2 operator * ( const float s ) const
 	{ return vec2( s*x, s*y ); }
 
     vec2 operator * ( const vec2& v ) const
 	{ return vec2( x*v.x, y*v.y ); }
 
-    friend vec2 operator * ( const GLfloat s, const vec2& v )
+    friend vec2 operator * ( const float s, const vec2& v )
 	{ return v * s; }
 
-    vec2 operator / ( const GLfloat s ) const {
+    vec2 operator / ( const float s ) const {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -72,7 +72,7 @@ struct vec2 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	return *this * r;
     }
 
@@ -86,13 +86,13 @@ struct vec2 {
     vec2& operator -= ( const vec2& v )
 	{ x -= v.x;  y -= v.y;  return *this; }
 
-    vec2& operator *= ( const GLfloat s )
+    vec2& operator *= ( const float s )
 	{ x *= s;  y *= s;   return *this; }
 
     vec2& operator *= ( const vec2& v )
 	{ x *= v.x;  y *= v.y; return *this; }
 
-    vec2& operator /= ( const GLfloat s ) {
+    vec2& operator /= ( const float s ) {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -100,7 +100,7 @@ struct vec2 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	*this *= r;
 
 	return *this;
@@ -121,11 +121,11 @@ struct vec2 {
     //  --- Conversion Operators ---
     //
 
-    operator const GLfloat* () const
-	{ return static_cast<const GLfloat*>( &x ); }
+    operator const float* () const
+	{ return static_cast<const float*>( &x ); }
 
-    operator GLfloat* ()
-	{ return static_cast<GLfloat*>( &x ); }
+    operator float* ()
+	{ return static_cast<float*>( &x ); }
 };
 
 //----------------------------------------------------------------------------
@@ -134,12 +134,12 @@ struct vec2 {
 //
 
 inline
-GLfloat dot( const vec2& u, const vec2& v ) {
+float dot( const vec2& u, const vec2& v ) {
     return u.x * v.x + u.y * v.y;
 }
 
 inline
-GLfloat length( const vec2& v ) {
+float length( const vec2& v ) {
     return std::sqrt( dot(v,v) );
 }
 
@@ -156,18 +156,18 @@ vec2 normalize( const vec2& v ) {
 
 struct vec3 {
 
-    GLfloat  x;
-    GLfloat  y;
-    GLfloat  z;
+    float  x;
+    float  y;
+    float  z;
 
     //
     //  --- Constructors and Destructors ---
     //
 
-    vec3( GLfloat s = GLfloat(0.0) ) :
+    vec3( float s = float(0.0) ) :
 	x(s), y(s), z(s) {}
 
-    vec3( GLfloat x, GLfloat y, GLfloat z ) :
+    vec3( float x, float y, float z ) :
 	x(x), y(y), z(z) {}
 
     vec3( const vec3& v ) { x = v.x;  y = v.y;  z = v.z; }
@@ -178,8 +178,8 @@ struct vec3 {
     //  --- Indexing Operator ---
     //
 
-    GLfloat& operator [] ( int i ) { return *(&x + i); }
-    const GLfloat operator [] ( int i ) const { return *(&x + i); }
+    float& operator [] ( int i ) { return *(&x + i); }
+    const float operator [] ( int i ) const { return *(&x + i); }
 
     //
     //  --- (non-modifying) Arithematic Operators ---
@@ -194,16 +194,16 @@ struct vec3 {
     vec3 operator - ( const vec3& v ) const
 	{ return vec3( x - v.x, y - v.y, z - v.z ); }
 
-    vec3 operator * ( const GLfloat s ) const
+    vec3 operator * ( const float s ) const
 	{ return vec3( s*x, s*y, s*z ); }
 
     vec3 operator * ( const vec3& v ) const
 	{ return vec3( x*v.x, y*v.y, z*v.z ); }
 
-    friend vec3 operator * ( const GLfloat s, const vec3& v )
+    friend vec3 operator * ( const float s, const vec3& v )
 	{ return v * s; }
 
-    vec3 operator / ( const GLfloat s ) const {
+    vec3 operator / ( const float s ) const {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -212,7 +212,7 @@ struct vec3 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	return *this * r;
     }
 
@@ -226,13 +226,13 @@ struct vec3 {
     vec3& operator -= ( const vec3& v )
 	{ x -= v.x;  y -= v.y;  z -= v.z;  return *this; }
 
-    vec3& operator *= ( const GLfloat s )
+    vec3& operator *= ( const float s )
 	{ x *= s;  y *= s;  z *= s;  return *this; }
 
     vec3& operator *= ( const vec3& v )
 	{ x *= v.x;  y *= v.y;  z *= v.z;  return *this; }
 
-    vec3& operator /= ( const GLfloat s ) {
+    vec3& operator /= ( const float s ) {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -240,7 +240,7 @@ struct vec3 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	*this *= r;
 
 	return *this;
@@ -261,11 +261,11 @@ struct vec3 {
     //  --- Conversion Operators ---
     //
 
-    operator const GLfloat* () const
-	{ return static_cast<const GLfloat*>( &x ); }
+    operator const float* () const
+	{ return static_cast<const float*>( &x ); }
 
-    operator GLfloat* ()
-	{ return static_cast<GLfloat*>( &x ); }
+    operator float* ()
+	{ return static_cast<float*>( &x ); }
 };
 
 //----------------------------------------------------------------------------
@@ -274,12 +274,12 @@ struct vec3 {
 //
 
 inline
-GLfloat dot( const vec3& u, const vec3& v ) {
+float dot( const vec3& u, const vec3& v ) {
     return u.x*v.x + u.y*v.y + u.z*v.z ;
 }
 
 inline
-GLfloat length( const vec3& v ) {
+float length( const vec3& v ) {
     return std::sqrt( dot(v,v) );
 }
 
@@ -305,19 +305,19 @@ vec3 cross(const vec3& a, const vec3& b )
 
 struct vec4 {
 
-    GLfloat  x;
-    GLfloat  y;
-    GLfloat  z;
-    GLfloat  w;
+    float  x;
+    float  y;
+    float  z;
+    float  w;
 
     //
     //  --- Constructors and Destructors ---
     //
 
-    vec4( GLfloat s = GLfloat(0.0) ) :
+    vec4( float s = float(0.0) ) :
 	x(s), y(s), z(s), w(s) {}
 
-    vec4( GLfloat x, GLfloat y, GLfloat z, GLfloat w ) :
+    vec4( float x, float y, float z, float w ) :
 	x(x), y(y), z(z), w(w) {}
 
     vec4( const vec4& v ) { x = v.x;  y = v.y;  z = v.z;  w = v.w; }
@@ -332,8 +332,8 @@ struct vec4 {
     //  --- Indexing Operator ---
     //
 
-    GLfloat& operator [] ( int i ) { return *(&x + i); }
-    const GLfloat operator [] ( int i ) const { return *(&x + i); }
+    float& operator [] ( int i ) { return *(&x + i); }
+    const float operator [] ( int i ) const { return *(&x + i); }
 
     //
     //  --- (non-modifying) Arithematic Operators ---
@@ -348,16 +348,16 @@ struct vec4 {
     vec4 operator - ( const vec4& v ) const
 	{ return vec4( x - v.x, y - v.y, z - v.z, w - v.w ); }
 
-    vec4 operator * ( const GLfloat s ) const
+    vec4 operator * ( const float s ) const
 	{ return vec4( s*x, s*y, s*z, s*w ); }
 
     vec4 operator * ( const vec4& v ) const
 	{ return vec4( x*v.x, y*v.y, z*v.z, w*v.z ); }
 
-    friend vec4 operator * ( const GLfloat s, const vec4& v )
+    friend vec4 operator * ( const float s, const vec4& v )
 	{ return v * s; }
 
-    vec4 operator / ( const GLfloat s ) const {
+    vec4 operator / ( const float s ) const {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -366,7 +366,7 @@ struct vec4 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	return *this * r;
     }
 
@@ -380,13 +380,13 @@ struct vec4 {
     vec4& operator -= ( const vec4& v )
 	{ x -= v.x;  y -= v.y;  z -= v.z;  w -= v.w;  return *this; }
 
-    vec4& operator *= ( const GLfloat s )
+    vec4& operator *= ( const float s )
 	{ x *= s;  y *= s;  z *= s;  w *= s;  return *this; }
 
     vec4& operator *= ( const vec4& v )
 	{ x *= v.x, y *= v.y, z *= v.z, w *= v.w;  return *this; }
 
-    vec4& operator /= ( const GLfloat s ) {
+    vec4& operator /= ( const float s ) {
 #ifdef DEBUG
 	if ( std::fabs(s) < DivideByZeroTolerance ) {
 	    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
@@ -394,7 +394,7 @@ struct vec4 {
 	}
 #endif // DEBUG
 
-	GLfloat r = GLfloat(1.0) / s;
+	float r = float(1.0) / s;
 	*this *= r;
 
 	return *this;
@@ -416,11 +416,11 @@ struct vec4 {
     //  --- Conversion Operators ---
     //
 
-    operator const GLfloat* () const
-	{ return static_cast<const GLfloat*>( &x ); }
+    operator const float* () const
+	{ return static_cast<const float*>( &x ); }
 
-    operator GLfloat* ()
-	{ return static_cast<GLfloat*>( &x ); }
+    operator float* ()
+	{ return static_cast<float*>( &x ); }
 };
 
 //----------------------------------------------------------------------------
@@ -429,12 +429,12 @@ struct vec4 {
 //
 
 inline
-GLfloat dot( const vec4& u, const vec4& v ) {
+float dot( const vec4& u, const vec4& v ) {
     return u.x*v.x + u.y*v.y + u.z*v.z + u.w+v.w;
 }
 
 inline
-GLfloat length( const vec4& v ) {
+float length( const vec4& v ) {
     return std::sqrt( dot(v,v) );
 }
 
@@ -451,8 +451,5 @@ vec3 cross(const vec4& a, const vec4& b )
 		 a.x * b.y - a.y * b.x );
 }
 
-//----------------------------------------------------------------------------
-
-}  // namespace Angel
 
 #endif // __ANGEL_VEC_H__
