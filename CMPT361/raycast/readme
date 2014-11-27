@@ -16,4 +16,7 @@ box for models in order to not calculate polygons that rays wont ever hit. The
 multi threading is implemented by a queue that contains each pixel. One thread
 per process then consumes that queue, rendering the pixels.
 
-
+I have three screenshots.
+default.png, ./raycast -d 10 +s +l +p
+mine.png, ./raycast -u 10 +s +l +p +r +c
+mine2.png, ./raycast -c 10 +s +l +p +r
