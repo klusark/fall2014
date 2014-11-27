@@ -1,0 +1,19 @@
+make
+
+./raycast [scene mode] [num reflections] [opts]
+
+I implemneted all of the standard options, plus both bonus parts.
+
+For scene modes, -d is the default, -u moves the spheres to cover each other and
+adds transperancy, and -c draws models on an infinite chess board for the bonus.
+
+For the bonus problems. I implemented model drawing. It looks fine, but doesn't
+implement interpolated normals as would be needed in order to get the full phong
+effect.
+
+For optimization I made my ray tracer multi threaded and implemented a bounding
+box for models in order to not calculate polygons that rays wont ever hit. The
+multi threading is implemented by a queue that contains each pixel. One thread
+per process then consumes that queue, rendering the pixels.
+
+
