@@ -254,6 +254,7 @@ public:
 	void writeData(int seqno, const std::string &data);
 	bool hasWrite(int seqno);
 	void setState(TransactionState s);
+	void insert();
 	TransactionState _state;
 	std::mutex _mutex;
 };
@@ -276,8 +277,11 @@ Transaction::Transaction(std::string filename, bool create) : _filename(filename
 		_usedIds.insert(id);
 		_usedIds_mutex.unlock();
 		_id = id;
-		SQLTransaction(SQLInsert, _id, _state, filename);
 	}
+}
+
+void Transaction::insert() {
+	SQLTransaction(SQLInsert, _id, _state, _filename);
 }
 void Transaction::setState(TransactionState s) {
 	_state = s;
@@ -408,6 +412,7 @@ Transaction *createTransaction(const std::string &filename, int id = -1) {
 	if (!create) {
 		t->_id = id;
 	}
+	t->insert();
 	std::cout << "Create transaction " << t->getId() << std::endl;
 	File *f = File::getFile(filename, true);
 	t->_file = f;
