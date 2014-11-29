@@ -746,9 +746,8 @@ void runMaster() {
 		std::cerr << "Could not bind to port: " << port << std::endl;
 		return;
 	}
-
 	int fd = open(primary.c_str(), O_WRONLY|O_CREAT, 0777);
-	std::string data = address + " " + port;
+	std::string data = address + " " + port + "\n";
 	::write(fd, data.c_str(), data.length());
 	close(fd);
 
@@ -801,6 +800,7 @@ bool connectToMaster() {
 	backupfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (backupfd < 0) {
 		std::cerr << "Could not create socket" << std::endl;
+		exit(-1);
 		return false;
 	}
 
