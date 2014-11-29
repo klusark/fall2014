@@ -329,11 +329,13 @@ private:
 	std::string _data;
 	bool _connected;
 	bool _isBackup;
+	int _keeps;
 };
 
 
 
 Client::Client() {
+	_keeps = 0;
 	_connected = true;
 	_isBackup = false;
 	_fd = -1;
@@ -346,6 +348,7 @@ Client::~Client() {
 	}
 	if (_isBackup) {
 		backupConnected = false;
+		std::cout << "Backup Disconnect" << std::endl;
 	}
 }
 
@@ -363,7 +366,11 @@ void Client::readThread() {
 		if (len <= 0) {
 			if (!_endThreads && _connected && errno == EAGAIN) {
 				++counter;
-				if (counter > 120) {
+				_keeps = 0;
+				if (!_isBackup && counter > 120) {
+					break;
+				}
+				if (_isBackup && _keeps == 0) {
 					break;
 				}
 				continue;
@@ -401,6 +408,7 @@ Transaction *createTransaction(const std::string &filename, int id = -1) {
 	if (!create) {
 		t->_id = id;
 	}
+	std::cout << "Create transaction " << t->getId() << std::endl;
 	File *f = File::getFile(filename, true);
 	t->_file = f;
 	f->_mutex.unlock();
@@ -497,6 +505,7 @@ void Client::parseMessage(const char *data) {
 			return;
 		}
 		if (bufferData(length) < 0) {
+			t->_mutex.unlock();
 			return;
 		}
 		if (_data.size() == 0) {
@@ -522,6 +531,7 @@ void Client::parseMessage(const char *data) {
 			return;
 		}
 		if (t->_state == Commited) {
+			t->_mutex.unlock();
 			respond("ACK", id, seqno, 0);
 			return;
 		}
@@ -566,6 +576,8 @@ void Client::parseMessage(const char *data) {
 			std::lock_guard<std::mutex> lock(_sqlMutex);
 			_sqlCondition.notify_all();
 		}
+	} else if (method == "KEEP") {
+		_keeps++;
 	} else {
 		respond("ERROR", 0, 0, 204, "Wrong message format");
 		disconnect();
@@ -739,11 +751,13 @@ void runMaster() {
 	bindfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (bindfd < 0) {
 		std::cerr << "Could not create socket" << std::endl;
+		exit(-1);
 		return;
 	}
 
 	if (bind(bindfd, addr->ai_addr, addr->ai_addrlen) < 0) {
 		std::cerr << "Could not bind to port: " << port << std::endl;
+		exit(-1);
 		return;
 	}
 	int fd = open(primary.c_str(), O_WRONLY|O_CREAT, 0777);
@@ -810,19 +824,32 @@ bool connectToMaster() {
 		return false;
 	}
 
-	const char *message = "BACKUP 0 0 0\r\n\r\n\r\n";
+	const char *message = "BACKUP 0 0 0\r\n\r\n";
 	write(backupfd, message, strlen(message));
 
 	return true;
 }
 
 void runBackup() {
+	timeval tv;
+	memset(&tv, 0, sizeof(tv));
+
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
+
+	setsockopt(backupfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
 	char buff[1024];
 	BackupMessage *b = (BackupMessage *)buff;
 	int pos = 0;
 	while (1) {
 		int len = read(backupfd, buff + pos, 1024 - pos);
 		if (len <= 0) {
+			if (errno = EAGAIN) {
+				const char *message = "KEEP 0 0 0\r\n\r\n";
+				write(backupfd, message, strlen(message));
+				continue;
+			}
 			break;
 		}
 		pos += len;
@@ -851,7 +878,6 @@ void runBackup() {
 				t->setState(Commited);
 				t->_mutex.unlock();
 			} else {
-				std::cout << type << std::endl;
 			}
 			memmove(buff, buff + messagelen, pos - messagelen);
 			pos -= messagelen;
