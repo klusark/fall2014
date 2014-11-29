@@ -2,6 +2,16 @@ Everything should work as described in the assignment.
 
 use -pirmary to specify the primary file location
 
+When a server starts it will check the primary file, and if it can connect to
+that server it becomes the backup. If it cannot connect it becomes the primary
+and writes its information into the primary.txt file.
+
+The backup server does not listen to connections, and thus also does not check
+if the port it is given is available until it becomes master.
+
+Because the server's ip address need to be written into the primary file,
+you can't use 0.0.0.0 as the ip, and must instead use the address that the
+server will be contacted on.
 To build
 
 make
