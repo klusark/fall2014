@@ -847,7 +847,10 @@ void runBackup() {
 		if (len <= 0) {
 			if (errno = EAGAIN) {
 				const char *message = "KEEP 0 0 0\r\n\r\n";
-				write(backupfd, message, strlen(message));
+				int len = write(backupfd, message, strlen(message));
+				if (len <= 0) {
+					break;
+				}
 				continue;
 			}
 			break;
