@@ -413,7 +413,6 @@ Transaction *createTransaction(const std::string &filename, int id = -1) {
 		t->_id = id;
 	}
 	t->insert();
-	std::cout << "Create transaction " << t->getId() << std::endl;
 	File *f = File::getFile(filename, true);
 	t->_file = f;
 	f->_mutex.unlock();
@@ -967,8 +966,8 @@ int main(int argc, char *argv[]) {
 	while (ret == SQLITE_ROW) {
 		int val = sqlite3_column_int(stmt, 0);
 		Transaction::_usedIds.insert(val);
-		Transaction *t = new Transaction((const char *)sqlite3_column_text(stmt, 1), false);
-		t->_id = val;
+		Transaction *t = createTransaction((const char *)sqlite3_column_text(stmt, 1), val);
+
 		t->_state = (TransactionState)sqlite3_column_int(stmt, 2);
 		ret = sqlite3_step(stmt);
 	}

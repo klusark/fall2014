@@ -12,6 +12,10 @@ if the port it is given is available until it becomes master.
 Because the server's ip address need to be written into the primary file,
 you can't use 0.0.0.0 as the ip, and must instead use the address that the
 server will be contacted on.
+
+It prints messages about the current master/backup state in order to identify
+who is currently the backup and who is the master.
+
 To build
 
 make
